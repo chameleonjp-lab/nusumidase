@@ -1,0 +1,3 @@
+# Preserve the exact inherited source bytes, including their final blank line.
+src/aircraft.ts whitespace=-blank-at-eof
+src/flight-view.ts whitespace=-blank-at-eof
