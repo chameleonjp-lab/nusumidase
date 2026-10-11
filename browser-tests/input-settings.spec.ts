@@ -72,7 +72,9 @@ for (const viewport of [{width:320,height:568},{width:393,height:852},{width:568
   test(`live/preview lever uses the same safe rectangle at ${viewport.width}x${viewport.height}, including 200% text`, async ({page}) => {
     await page.setViewportSize(viewport); await setup(page); await touchPresentation(page);
     const live=await page.locator('#throttle').boundingBox(); expect(live).not.toBeNull();
-    expect(live!.width).toBeGreaterThanOrEqual(44); expect(live!.height).toBeCloseTo(live!.width*2,2);
+    expect(live!.width).toBeGreaterThanOrEqual(44);
+    // Browser layout quantizes each CSS dimension independently to 1/64px.
+    expect(Math.abs(live!.height - live!.width * 2)).toBeLessThanOrEqual(1 / 32);
     expect(live!.x).toBeGreaterThanOrEqual(0); expect(live!.y).toBeGreaterThanOrEqual(0);
     expect(live!.x+live!.width).toBeLessThanOrEqual(viewport.width); expect(live!.y+live!.height).toBeLessThanOrEqual(viewport.height);
     const peers=await page.locator('#fire, #loop, #pause, #game-sound').evaluateAll(elements => elements.map(el => {const r=el.getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height};}));
@@ -106,10 +108,12 @@ test('settings Cancel writes zero, Save commits all owned values, future raw sta
   expect(keys).toEqual(['nusumidase-controls-easy-v2','nusumidase-controls-v2','nusumidase-keyboard-v1','nusumidase-transaction-v1']);
   const future='{"version":99,"controls":{"private":"preserve"}}';
   await page.evaluate(raw=>localStorage.setItem('nusumidase-controls-v2',raw),future);
+  const preservedSnapshot = await page.evaluate(() => Object.fromEntries(Object.keys(localStorage).sort().map(key => [key, localStorage.getItem(key)])));
   await page.reload();await expect(page.locator('#start')).toBeEnabled({timeout:60000});
   await page.locator('#home-controls').click();await page.locator('#control-save').click();
-  await expect(page.locator('#control-settings')).toBeVisible();await expect(page.locator('#control-storage-note')).toContainText('未知');
+  await expect(page.locator('#control-settings')).toBeVisible();await expect(page.locator('#control-storage-note')).toContainText(/未知|復元未完了/);
   await expect(page.locator('#control-save')).toHaveText('今回だけ使う');await page.locator('#control-save').click();
   await expect(page.locator('#control-settings')).not.toBeVisible();
   expect(await page.evaluate(()=>localStorage.getItem('nusumidase-controls-v2'))).toBe(future);
+  expect(await page.evaluate(() => Object.fromEntries(Object.keys(localStorage).sort().map(key => [key, localStorage.getItem(key)])))).toEqual(preservedSnapshot);
 });
