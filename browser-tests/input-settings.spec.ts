@@ -89,8 +89,22 @@ for (const viewport of [{width:320,height:568},{width:393,height:852},{width:568
       return {liveW:parseFloat(live.style.getPropertyValue('--control-size')),liveH:parseFloat(live.style.getPropertyValue('--control-height')),previewW:preview.getBoundingClientRect().width/scale,previewH:preview.getBoundingClientRect().height/scale};
     });
     expect(geometries.previewW).toBeCloseTo(geometries.liveW,1); expect(geometries.previewH).toBeCloseTo(geometries.liveH,1);
-    await page.evaluate(()=>document.documentElement.style.fontSize='200%');
+    const textScale = await page.evaluate(() => {
+      const dialog = document.getElementById('control-settings')!;
+      // Simulate CSS text magnification, including fixed-pixel labels. Snapshot
+      // every size first so inherited styles do not compound while doubling.
+      const sizes = [dialog, ...dialog.querySelectorAll<HTMLElement>('*')]
+        .map(element => ({ element, pixels: parseFloat(getComputedStyle(element).fontSize) }));
+      const representatives = ['control-settings-title', 'control-save', 'control-close', 'control-mode-note'];
+      const before = Object.fromEntries(representatives.map(id => [id, parseFloat(getComputedStyle(document.getElementById(id)!).fontSize)]));
+      for (const { element, pixels } of sizes) if (Number.isFinite(pixels) && pixels > 0) element.style.fontSize = `${pixels * 2}px`;
+      const after = Object.fromEntries(representatives.map(id => [id, parseFloat(getComputedStyle(document.getElementById(id)!).fontSize)]));
+      return { before, after };
+    });
+    for (const id of Object.keys(textScale.before)) expect(textScale.after[id]).toBeCloseTo(textScale.before[id] * 2, 2);
     await expect(page.locator('#control-save')).toBeInViewport(); await expect(page.locator('#control-close')).toBeInViewport();
+    await page.locator('#control-save').focus(); await expect(page.locator('#control-save')).toBeFocused();
+    await page.locator('#control-close').focus(); await expect(page.locator('#control-close')).toBeFocused();
     await page.locator('#control-cancel').click();
     await expect(page.locator('#pause-screen')).toBeVisible(); await expect(page.locator('#pause-controls')).toBeFocused();
   });
