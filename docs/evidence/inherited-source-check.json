@@ -1,0 +1,58 @@
+[
+  {
+    "path": "src/style.css",
+    "byteEqual": false,
+    "candidateRetainsFullBaselinePrefix": false,
+    "baselineSha256": "444c78dc16d8d512fe0e528b062bde34f8c8e6c410e86e0ebf3d7542fceecbd8",
+    "candidateSha256": "e2edcf36c9223ad5b2398ac5367234df76b9190ced156c710f2c67b3a857fd89"
+  },
+  {
+    "path": "src/control-settings.css",
+    "byteEqual": false,
+    "candidateRetainsFullBaselinePrefix": true,
+    "baselineSha256": "c04d27c450da70f85a3c843bb5e7fd0905d455f1e9cf16b66609adf605fe8f4e",
+    "candidateSha256": "1d799fbfb970c6caf56d69943e158e87e596cf2d1c723213d9e4cfe54e1deaac"
+  },
+  {
+    "path": "src/aircraft.ts",
+    "byteEqual": true,
+    "candidateRetainsFullBaselinePrefix": true,
+    "baselineSha256": "1a9c18f93e5a48869882b2aa2946cdeb352dc4a8acd76b4fd9beade8ded621d5",
+    "candidateSha256": "1a9c18f93e5a48869882b2aa2946cdeb352dc4a8acd76b4fd9beade8ded621d5"
+  },
+  {
+    "path": "src/flight-view.ts",
+    "byteEqual": true,
+    "candidateRetainsFullBaselinePrefix": true,
+    "baselineSha256": "1f9b7e040c2270de5838f24bad93c7ac1c75c7827ba3c1b58591ef6271a20363",
+    "candidateSha256": "1f9b7e040c2270de5838f24bad93c7ac1c75c7827ba3c1b58591ef6271a20363"
+  },
+  {
+    "path": "src/atmosphere.ts",
+    "byteEqual": true,
+    "candidateRetainsFullBaselinePrefix": true,
+    "baselineSha256": "e6b9c95f0685bb2732926e72730c96712251813a2c6c6faa150a21793c2c1f7a",
+    "candidateSha256": "e6b9c95f0685bb2732926e72730c96712251813a2c6c6faa150a21793c2c1f7a"
+  },
+  {
+    "path": "src/ocean.ts",
+    "byteEqual": true,
+    "candidateRetainsFullBaselinePrefix": true,
+    "baselineSha256": "0f2263700d5b9c5516e81d77fd4e2b6341c94a257b6edb2893f8d41ddbb574d0",
+    "candidateSha256": "0f2263700d5b9c5516e81d77fd4e2b6341c94a257b6edb2893f8d41ddbb574d0"
+  },
+  {
+    "path": "src/aircraft-batch.ts",
+    "byteEqual": true,
+    "candidateRetainsFullBaselinePrefix": true,
+    "baselineSha256": "cd69fdcd03507faffca251b311f253f4ccd10aa0bb11fbfc767626a4960c5428",
+    "candidateSha256": "cd69fdcd03507faffca251b311f253f4ccd10aa0bb11fbfc767626a4960c5428"
+  },
+  {
+    "path": "src/gun-sight.ts",
+    "byteEqual": true,
+    "candidateRetainsFullBaselinePrefix": true,
+    "baselineSha256": "436c9e7c6a6864513489de6d8172d85d97bd1bf685b60678890f848a9acd2b71",
+    "candidateSha256": "436c9e7c6a6864513489de6d8172d85d97bd1bf685b60678890f848a9acd2b71"
+  }
+]

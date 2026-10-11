@@ -1,0 +1,124 @@
+{
+  "source": {
+    "repository": "https://github.com/chameleonjp-lab/kaisen",
+    "commit": "3d751051dc6212482a129e8da596ddd349b2f9f5",
+    "sourceUnmodified": true
+  },
+  "capturePurpose": "Pre-candidate UI baseline. Screenshots alone do not satisfy AC-VISUAL acceptance.",
+  "browser": {
+    "name": "Chromium",
+    "version": "154.0.8037.57",
+    "executable": "/usr/bin/chromium",
+    "renderer": "ANGLE SwiftShader"
+  },
+  "os": "Debian GNU/Linux 13 (trixie)",
+  "runtime": {
+    "node": "24.19.0",
+    "npm": "11.9.0",
+    "three": "0.186.1",
+    "vite": "8.3.1",
+    "playwright": "1.61.1",
+    "typescript": "5.9.3",
+    "tsx": "4.21.0",
+    "@types/three": "0.183.1"
+  },
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "dpr": 1,
+  "textScale": "100%",
+  "browserZoom": "100%",
+  "safeArea": "0px in desktop emulation",
+  "seed": 1262569811,
+  "font": "Observed platform fonts: Noto Serif CJK JP Regular (title), Noto Sans CJK JP Regular/Bold (Japanese body/buttons), Noto Sans Bold (Latin brand). CSS stacks and PostScript names in fonts.json.",
+  "captureStartedAt": "2026-10-11T02:41:39.566Z",
+  "captureEndedAt": "2026-10-11T02:41:49.219Z",
+  "errors": [],
+  "entries": [
+    {
+      "name": "home-baseline",
+      "captureTime": "2026-10-11T02:41:39.566Z",
+      "tick": 0,
+      "mode": "easy",
+      "state": "ready",
+      "note": "",
+      "sha256": "d04e3867a3da9ef44a2aac86ae283c6d1062908f6122ac91af331790e2e1b894"
+    },
+    {
+      "name": "normal-touch-settings-baseline",
+      "captureTime": "2026-10-11T02:41:40.111Z",
+      "tick": 0,
+      "mode": "easy",
+      "state": "ready",
+      "note": "",
+      "sha256": "89ce4866d052f04d13c79ce1772cabe6a8e2913ecf82336f59f3bfd2e095597e",
+      "settingsEditorMode": "normal"
+    },
+    {
+      "name": "easy-touch-settings-baseline",
+      "captureTime": "2026-10-11T02:41:40.679Z",
+      "tick": 0,
+      "mode": "easy",
+      "state": "ready",
+      "note": "",
+      "sha256": "f8f8e7648eab1d017435956f1e1b6edf8a0e1fa6523ae4e30588a8ad93924b5d",
+      "settingsEditorMode": "easy"
+    },
+    {
+      "name": "keyboard-settings-baseline",
+      "captureTime": "2026-10-11T02:41:41.356Z",
+      "tick": 0,
+      "mode": "easy",
+      "state": "ready",
+      "note": "",
+      "sha256": "54b87c7944e0e5e305411c442eba5e52209995507aa6ec695c4773807606ad39",
+      "settingsEditor": "keyboard",
+      "settingsEditorMode": "easy"
+    },
+    {
+      "name": "normal-flight-baseline",
+      "captureTime": "2026-10-11T02:41:43.386Z",
+      "tick": 51,
+      "mode": "normal",
+      "state": "paused",
+      "note": "Captured from a real UI-started flight, paused via visible button before screenshot. Only pause overlay visibility removed for flight image; captured game state is paused. Baseline Kaisen retains ship fleet and legacy throttle buttons.",
+      "sha256": "b8aa8c9564a2a17faaeba935ff93492c5d756302b33c30e84b3ee63851ff61d0"
+    },
+    {
+      "name": "pause-baseline",
+      "captureTime": "2026-10-11T02:41:43.920Z",
+      "tick": 51,
+      "mode": "normal",
+      "state": "paused",
+      "note": "",
+      "sha256": "a08cbc1554d7756ef9d41d700130e53b4efad26d7fc10368d00ccb7b23f4163e"
+    },
+    {
+      "name": "result-baseline",
+      "captureTime": "2026-10-11T02:41:47.411Z",
+      "tick": 206,
+      "mode": "normal",
+      "state": "ended",
+      "note": "Semantic result fixture: normal-mode death by real ArrowDown input. Candidate CTF result values will differ by the game rules; numerical equality is not claimed.",
+      "sha256": "3387417f99f836b5b9f1bdfd3e93927f4b3834ce51d3a85c9d2fd11d907962f2"
+    },
+    {
+      "name": "easy-flight-baseline",
+      "captureTime": "2026-10-11T02:41:49.219Z",
+      "tick": 55,
+      "mode": "easy",
+      "state": "paused",
+      "note": "Captured from a real UI-started flight, paused via visible button before screenshot. Only pause overlay visibility removed.",
+      "sha256": "5ae6521ee7a00890505565001f5714db8b856c6e652b75c0ebf2cae1bddb82cc"
+    }
+  ],
+  "limitations": [
+    "No candidate comparison yet",
+    "No iPhone hardware",
+    "No WebKit captures yet",
+    "DPR2, landscape, other viewport sizes and 200% text/zoom not yet captured",
+    "Flight screenshots use real-clock snapshots and must not be represented as equal-tick candidate diffs until the recorded state is replayed"
+  ],
+  "fontInspection": "fonts.json"
+}

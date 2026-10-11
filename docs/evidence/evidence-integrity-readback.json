@@ -1,0 +1,598 @@
+{
+  "comparisonTime": "2026-10-11T03:31:32.227991+00:00",
+  "candidateSourceCommit": "af8d9b9ebcf79c55b4c2b650991f266bf5360cba",
+  "sourceRecordCount": 31,
+  "imageCount": 37,
+  "candidateSourceCount": 36,
+  "candidateUIEntryCount": 17,
+  "pageErrorCount": 0,
+  "sameFixtureImageCount": 6,
+  "sameFixturePixelDiffZero": true,
+  "candidateSourceMatchesCurrentAndGitArchive": true,
+  "failures": [],
+  "checks": [
+    {
+      "type": "source",
+      "repository": "https://github.com/chameleonjp-lab/kaisen",
+      "commit": "3d751051dc6212482a129e8da596ddd349b2f9f5",
+      "path": "index.html",
+      "passed": true
+    },
+    {
+      "type": "source",
+      "repository": "https://github.com/chameleonjp-lab/kaisen",
+      "commit": "3d751051dc6212482a129e8da596ddd349b2f9f5",
+      "path": "src/style.css",
+      "passed": true
+    },
+    {
+      "type": "source",
+      "repository": "https://github.com/chameleonjp-lab/kaisen",
+      "commit": "3d751051dc6212482a129e8da596ddd349b2f9f5",
+      "path": "src/control-settings.ts",
+      "passed": true
+    },
+    {
+      "type": "source",
+      "repository": "https://github.com/chameleonjp-lab/kaisen",
+      "commit": "3d751051dc6212482a129e8da596ddd349b2f9f5",
+      "path": "src/control-settings.css",
+      "passed": true
+    },
+    {
+      "type": "source",
+      "repository": "https://github.com/chameleonjp-lab/kaisen",
+      "commit": "3d751051dc6212482a129e8da596ddd349b2f9f5",
+      "path": "src/keyboard-settings.ts",
+      "passed": true
+    },
+    {
+      "type": "source",
+      "repository": "https://github.com/chameleonjp-lab/kaisen",
+      "commit": "3d751051dc6212482a129e8da596ddd349b2f9f5",
+      "path": "src/input.ts",
+      "passed": true
+    },
+    {
+      "type": "source",
+      "repository": "https://github.com/chameleonjp-lab/kaisen",
+      "commit": "3d751051dc6212482a129e8da596ddd349b2f9f5",
+      "path": "src/main.ts",
+      "passed": true
+    },
+    {
+      "type": "source",
+      "repository": "https://github.com/chameleonjp-lab/kaisen",
+      "commit": "3d751051dc6212482a129e8da596ddd349b2f9f5",
+      "path": "src/aircraft.ts",
+      "passed": true
+    },
+    {
+      "type": "source",
+      "repository": "https://github.com/chameleonjp-lab/kaisen",
+      "commit": "3d751051dc6212482a129e8da596ddd349b2f9f5",
+      "path": "src/flight.ts",
+      "passed": true
+    },
+    {
+      "type": "source",
+      "repository": "https://github.com/chameleonjp-lab/kaisen",
+      "commit": "3d751051dc6212482a129e8da596ddd349b2f9f5",
+      "path": "src/flight-assist.ts",
+      "passed": true
+    },
+    {
+      "type": "source",
+      "repository": "https://github.com/chameleonjp-lab/kaisen",
+      "commit": "3d751051dc6212482a129e8da596ddd349b2f9f5",
+      "path": "src/flight-view.ts",
+      "passed": true
+    },
+    {
+      "type": "source",
+      "repository": "https://github.com/chameleonjp-lab/kaisen",
+      "commit": "3d751051dc6212482a129e8da596ddd349b2f9f5",
+      "path": "src/scene.ts",
+      "passed": true
+    },
+    {
+      "type": "source",
+      "repository": "https://github.com/chameleonjp-lab/kaisen",
+      "commit": "3d751051dc6212482a129e8da596ddd349b2f9f5",
+      "path": "src/aircraft-damage.ts",
+      "passed": true
+    },
+    {
+      "type": "source",
+      "repository": "https://github.com/chameleonjp-lab/kaisen",
+      "commit": "3d751051dc6212482a129e8da596ddd349b2f9f5",
+      "path": "src/aircraft-batch.ts",
+      "passed": true
+    },
+    {
+      "type": "source",
+      "repository": "https://github.com/chameleonjp-lab/kaisen",
+      "commit": "3d751051dc6212482a129e8da596ddd349b2f9f5",
+      "path": "src/atmosphere.ts",
+      "passed": true
+    },
+    {
+      "type": "source",
+      "repository": "https://github.com/chameleonjp-lab/kaisen",
+      "commit": "3d751051dc6212482a129e8da596ddd349b2f9f5",
+      "path": "src/gun-sight.ts",
+      "passed": true
+    },
+    {
+      "type": "source",
+      "repository": "https://github.com/chameleonjp-lab/kaisen",
+      "commit": "3d751051dc6212482a129e8da596ddd349b2f9f5",
+      "path": "src/ocean.ts",
+      "passed": true
+    },
+    {
+      "type": "source",
+      "repository": "https://github.com/chameleonjp-lab/kaisen",
+      "commit": "3d751051dc6212482a129e8da596ddd349b2f9f5",
+      "path": "src/render-queue.ts",
+      "passed": true
+    },
+    {
+      "type": "source",
+      "repository": "https://github.com/chameleonjp-lab/kaisen",
+      "commit": "3d751051dc6212482a129e8da596ddd349b2f9f5",
+      "path": "src/aim-indicator.ts",
+      "passed": true
+    },
+    {
+      "type": "source",
+      "repository": "https://github.com/chameleonjp-lab/kaisen",
+      "commit": "3d751051dc6212482a129e8da596ddd349b2f9f5",
+      "path": "src/aircraft-tracers.ts",
+      "passed": true
+    },
+    {
+      "type": "source",
+      "repository": "https://github.com/chameleonjp-lab/kaisen",
+      "commit": "3d751051dc6212482a129e8da596ddd349b2f9f5",
+      "path": "src/audio.ts",
+      "passed": true
+    },
+    {
+      "type": "source",
+      "repository": "https://github.com/chameleonjp-lab/kaisen",
+      "commit": "3d751051dc6212482a129e8da596ddd349b2f9f5",
+      "path": "src/dialog-focus.ts",
+      "passed": true
+    },
+    {
+      "type": "source",
+      "repository": "https://github.com/chameleonjp-lab/kaisen",
+      "commit": "3d751051dc6212482a129e8da596ddd349b2f9f5",
+      "path": "src/rules-guide.ts",
+      "passed": true
+    },
+    {
+      "type": "source",
+      "repository": "https://github.com/chameleonjp-lab/kaisen",
+      "commit": "3d751051dc6212482a129e8da596ddd349b2f9f5",
+      "path": "src/types.ts",
+      "passed": true
+    },
+    {
+      "type": "source",
+      "repository": "https://github.com/chameleonjp-lab/machimamore",
+      "commit": "cb7d698a50abb8bbb53b00c2e0071fc7cfc28b70",
+      "path": "src/control-settings.ts",
+      "passed": true
+    },
+    {
+      "type": "source",
+      "repository": "https://github.com/chameleonjp-lab/machimamore",
+      "commit": "cb7d698a50abb8bbb53b00c2e0071fc7cfc28b70",
+      "path": "src/control-obstacles.ts",
+      "passed": true
+    },
+    {
+      "type": "source",
+      "repository": "https://github.com/chameleonjp-lab/machimamore",
+      "commit": "c4224528b83d31cccc66e04b2c146ec931ec51e0",
+      "path": "docs/THROTTLE_LEVER_CONTRACT.md",
+      "passed": true
+    },
+    {
+      "type": "source",
+      "repository": "https://github.com/chameleonjp-lab/machimamore",
+      "commit": "c4224528b83d31cccc66e04b2c146ec931ec51e0",
+      "path": "docs/fixtures/throttle-lever-v1.json",
+      "passed": true
+    },
+    {
+      "type": "source",
+      "repository": "https://github.com/chameleonjp-lab/machimamore",
+      "commit": "cb7d698a50abb8bbb53b00c2e0071fc7cfc28b70",
+      "path": "src/throttle-lever.ts",
+      "passed": true
+    },
+    {
+      "type": "source",
+      "repository": "https://github.com/chameleonjp-lab/faitofuraito",
+      "commit": "c2b313d37875b93458032d98636fcf5b5d30a138",
+      "path": "src/aircraft.ts",
+      "passed": true
+    },
+    {
+      "type": "source",
+      "repository": "https://github.com/chameleonjp-lab/faitofuraito",
+      "commit": "c2b313d37875b93458032d98636fcf5b5d30a138",
+      "path": "src/flight-view.ts",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/baseline/home-baseline.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/baseline/normal-touch-settings-baseline.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/baseline/easy-touch-settings-baseline.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/baseline/keyboard-settings-baseline.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/baseline/normal-flight-baseline.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/baseline/pause-baseline.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/baseline/result-baseline.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/baseline/easy-flight-baseline.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/baseline/aircraft-front-baseline.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/baseline/aircraft-side-baseline.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/baseline/aircraft-rear-baseline.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/baseline/aircraft-bank-baseline.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/baseline/camera-normal-baseline.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/baseline/camera-easy-baseline.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/candidate/home-candidate.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/candidate/normal-touch-settings-candidate.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/candidate/lever-settings-candidate.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/candidate/easy-touch-settings-candidate.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/candidate/keyboard-settings-candidate.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/candidate/rules-candidate.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/candidate/normal-flight-candidate.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/candidate/pause-candidate.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/candidate/easy-flight-candidate.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/candidate/result-candidate.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/candidate/time-draw-candidate.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/candidate/carrying-candidate.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/candidate/own-flag-absent-candidate.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/candidate/drop-candidate.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/candidate/respawn-wait-candidate.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/candidate/round-reset-candidate.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/candidate/save-failure-candidate.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/candidate/aircraft-front-candidate.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/candidate/aircraft-side-candidate.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/candidate/aircraft-rear-candidate.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/candidate/aircraft-bank-candidate.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/candidate/camera-normal-candidate.png",
+      "passed": true
+    },
+    {
+      "type": "image",
+      "path": "docs/evidence/candidate/camera-easy-candidate.png",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/ai.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/aim-indicator.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/aircraft-batch.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/aircraft-damage.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/aircraft-tracers.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/aircraft.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/arena.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/atmosphere.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/audio.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/combat.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/control-settings.css",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/control-settings.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/dialog-focus.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/flag-view.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/flags.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/flight-assist.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/flight-view.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/flight.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/gun-sight.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/input.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/keyboard-settings.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/main.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/mission.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/navigation.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/ocean.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/records.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/render-queue.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/respawn.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/rules-guide.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/scene.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/simulation.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/storage.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/style.css",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/throttle-lever.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "src/types.ts",
+      "passed": true
+    },
+    {
+      "type": "candidateSource",
+      "path": "index.html",
+      "passed": true
+    }
+  ],
+  "limitations": "SHA/blob evidence integrity only; no additional browser, acceptance matrix, hardware or human-play test."
+}

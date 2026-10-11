@@ -1,0 +1,26 @@
+
+> nusumidase@0.1.0 test
+> node --import tsx --test tests/*.test.ts
+
+✔ tests/ai-idle.test.ts (11385.805957ms)
+✔ tests/ai-navigation.test.ts (787.997355ms)
+✔ tests/audio.test.ts (339.342628ms)
+✔ tests/combat.test.ts (335.066454ms)
+✔ tests/control-settings.test.ts (204.322393ms)
+✔ tests/core-review.test.ts (270.944418ms)
+✔ tests/flags.test.ts (299.094749ms)
+✔ tests/flight-inheritance.test.ts (265.1632ms)
+✔ tests/input-controls.test.ts (381.414127ms)
+✔ tests/keyboard-settings.test.ts (245.305027ms)
+✔ tests/records.test.ts (228.98623ms)
+✔ tests/simulation.test.ts (1494.718719ms)
+✔ tests/storage.test.ts (180.829941ms)
+✔ tests/throttle-lever.test.ts (234.293951ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 11394.56138

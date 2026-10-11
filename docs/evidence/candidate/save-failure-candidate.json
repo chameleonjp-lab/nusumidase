@@ -1,0 +1,1674 @@
+{
+  "captureTime": "2026-10-11T03:30:50.302Z",
+  "fixtureRecipe": "Storage.setItem deliberately throws QuotaExceededError only for nusumidase keys; actual settings Save UI displays failure/session choice.",
+  "candidateSourceHashes": {
+    "src/ai.ts": "dcf4e9f39daa5249afa0f9fcf8703b490532f956b5f36b934d330f8701c6f75e",
+    "src/aim-indicator.ts": "ee29ce7c11532aeb9485e86522f8142fc1aff8fcf8eda47a696a79e22c5e453a",
+    "src/aircraft-batch.ts": "cd69fdcd03507faffca251b311f253f4ccd10aa0bb11fbfc767626a4960c5428",
+    "src/aircraft-damage.ts": "b0a71f4b39aa1adab948ea3f08d99f0ed60e30deb5087992c8f748c9a5fade83",
+    "src/aircraft-tracers.ts": "c58ac11913500fb9bd7bf8e9246b7fd34fdae4eb7230fb08b082fef2f8c88e05",
+    "src/aircraft.ts": "1a9c18f93e5a48869882b2aa2946cdeb352dc4a8acd76b4fd9beade8ded621d5",
+    "src/arena.ts": "711c9501520a3f67769f5704ab0aacfbf5b77ae39e60590c3bbbf73ef9a951b0",
+    "src/atmosphere.ts": "e6b9c95f0685bb2732926e72730c96712251813a2c6c6faa150a21793c2c1f7a",
+    "src/audio.ts": "6ce660e4643d117fdeff6e99a92e6c242394880ece9b42bd46b439611d9ab2b0",
+    "src/combat.ts": "db8b17c5af6ec09bfdb6430a0b18725d70fd62f9988b6d07b01bd97064c4c939",
+    "src/control-settings.css": "1d799fbfb970c6caf56d69943e158e87e596cf2d1c723213d9e4cfe54e1deaac",
+    "src/control-settings.ts": "0a46cebb748369ecf3d9f2d42aaece573bb2fdad384ae73b0eca5a18ce2566b5",
+    "src/dialog-focus.ts": "86d631a4d618558e1ca671004c12ccc1fbdfe75516e6c5d04f962acd2c5e1996",
+    "src/flag-view.ts": "856581dd88ff59646c164768d4ced83c66c974fcef7f59eabb1514a6370dba54",
+    "src/flags.ts": "c9052b9c10a589eb93ee66dbd3c4e3237ac6215d524023dff189b7365880ab85",
+    "src/flight-assist.ts": "53ecb54e2f6ab629e4ace8e39bb439240cf415ffc0662a93d16c128b5b829ec8",
+    "src/flight-view.ts": "1f9b7e040c2270de5838f24bad93c7ac1c75c7827ba3c1b58591ef6271a20363",
+    "src/flight.ts": "533258e55784ce5f374ae3334fb78f10709cf6e94be90e873d492cd1d56c02eb",
+    "src/gun-sight.ts": "436c9e7c6a6864513489de6d8172d85d97bd1bf685b60678890f848a9acd2b71",
+    "src/input.ts": "66f1bfa7376d853fe68e8630ac2419357e04d113029ffabae79fe84b1269720a",
+    "src/keyboard-settings.ts": "8d9a0dda5b7dddcad85cbe4b8adc829e78a61af4aa440c411fb4ba82437ea19d",
+    "src/main.ts": "6b9ffbee0efa8a63d1b85613e4ccbe98937a830fd961b0d89577382526f6119e",
+    "src/mission.ts": "73fc8c6ed821dd87dc2be6ac29c5058b19a4d4e1b2c59f16b58b1c50d20c600c",
+    "src/navigation.ts": "96532e52135f27f7c65a28b85ad6dfb21947781a85abdeecaba6ec03e253fa9a",
+    "src/ocean.ts": "0f2263700d5b9c5516e81d77fd4e2b6341c94a257b6edb2893f8d41ddbb574d0",
+    "src/records.ts": "210874925cd58ffcb24bd5939ee1300d40ea0a3e8cbc4d63ae1321c39695579c",
+    "src/render-queue.ts": "8ec4611984beb7168ead1a7e758faf399b0cc0b73939502352be984ab35648f7",
+    "src/respawn.ts": "bade12713cea81b69877cefca16ef26079819b6310a216e3626ce61e918c1669",
+    "src/rules-guide.ts": "c809f6ae240d35a0b2f58ec2a967f77d205e188a078b56d67b82c8ffa94ca2a4",
+    "src/scene.ts": "e8d7fd6ded0d52df9a56795ca0b6cc2c167c59d4e6a6127146b4f5f8d66ad0db",
+    "src/simulation.ts": "970e85a2c9e3a22f94e39b2a4c28824cf5713614f5b9678169857d37008c92f5",
+    "src/storage.ts": "0857565cc5e73dffd3fa70509c77ebd1d86ada9ada6290ee15c906dec7ddde01",
+    "src/style.css": "e2edcf36c9223ad5b2398ac5367234df76b9190ced156c710f2c67b3a857fd89",
+    "src/throttle-lever.ts": "e83fe3c570581d16cb76e08ef9a039bbe9d4a50da6575366ac7e126bf3f30cf0",
+    "src/types.ts": "727f71dc8add565425c678112cebb8c1cc49b61a91a697a826a47321108d6cff",
+    "index.html": "e6656b792fef8509b96e3d688b2ccfc6c11daa57ee15a67f52cdef5661be204e"
+  },
+  "state": {
+    "phase": "ready",
+    "pausedFrom": null,
+    "pauseReason": null,
+    "matchId": "nusumidase-20867fde-52de-478f-bd9b-bd4c687134bc-1",
+    "roundEpoch": 0,
+    "tick": 0,
+    "playTicks": 0,
+    "phaseTicks": 0,
+    "mode": "easy",
+    "config": {
+      "mode": "easy"
+    },
+    "seed": 1314214741,
+    "elapsed": 0,
+    "slots": [
+      {
+        "kind": "aircraft",
+        "id": 1,
+        "team": "friendly",
+        "slotId": 0,
+        "generation": 1,
+        "role": "player",
+        "lifecycle": "active",
+        "position": {
+          "x": -1750,
+          "y": 300,
+          "z": -200
+        },
+        "previous": {
+          "x": -1750,
+          "y": 300,
+          "z": -200
+        },
+        "quaternion": [
+          0,
+          -0.7071067811865475,
+          0,
+          0.7071067811865476
+        ],
+        "yaw": -1.5707963267948966,
+        "pitch": 0,
+        "bank": 0,
+        "speed": 110,
+        "health": 80,
+        "maxHealth": 80,
+        "mg": 288,
+        "cannon": 96,
+        "reloadTicksRemaining": 0,
+        "fireClock": 0,
+        "cannonClock": 0,
+        "respawnDuePlayTick": null,
+        "respawnRef": null,
+        "protectionUntilPlayTick": 0,
+        "loopProgress": 0,
+        "loopCooldown": 0,
+        "mode": "pursue",
+        "age": 0,
+        "targetId": null,
+        "aiPhase": "approach",
+        "aiPhaseTime": 0,
+        "aiWaypoint": {
+          "x": -1750,
+          "y": 300,
+          "z": -200
+        },
+        "aiTurn": 0,
+        "aiClimb": 0,
+        "aiFire": false,
+        "aiRole": "attacker",
+        "aiRoleSinceTick": -120,
+        "aiProgressTick": 0,
+        "aiBestDistance": null,
+        "aiRouteStage": 0
+      },
+      {
+        "kind": "aircraft",
+        "id": 2,
+        "team": "friendly",
+        "slotId": 1,
+        "generation": 1,
+        "role": "interceptor",
+        "lifecycle": "active",
+        "position": {
+          "x": -1750,
+          "y": 300,
+          "z": -100
+        },
+        "previous": {
+          "x": -1750,
+          "y": 300,
+          "z": -100
+        },
+        "quaternion": [
+          0,
+          -0.7071067811865475,
+          0,
+          0.7071067811865476
+        ],
+        "yaw": -1.5707963267948966,
+        "pitch": 0,
+        "bank": 0,
+        "speed": 110,
+        "health": 80,
+        "maxHealth": 80,
+        "mg": 288,
+        "cannon": 96,
+        "reloadTicksRemaining": 0,
+        "fireClock": 0,
+        "cannonClock": 0,
+        "respawnDuePlayTick": null,
+        "respawnRef": null,
+        "protectionUntilPlayTick": 0,
+        "loopProgress": 0,
+        "loopCooldown": 0,
+        "mode": "pursue",
+        "age": 0,
+        "targetId": null,
+        "aiPhase": "approach",
+        "aiPhaseTime": 0,
+        "aiWaypoint": {
+          "x": -1750,
+          "y": 300,
+          "z": -100
+        },
+        "aiTurn": 0,
+        "aiClimb": 0,
+        "aiFire": false,
+        "aiRole": "attacker",
+        "aiRoleSinceTick": -120,
+        "aiProgressTick": 0,
+        "aiBestDistance": null,
+        "aiRouteStage": 0
+      },
+      {
+        "kind": "aircraft",
+        "id": 3,
+        "team": "friendly",
+        "slotId": 2,
+        "generation": 1,
+        "role": "interceptor",
+        "lifecycle": "active",
+        "position": {
+          "x": -1750,
+          "y": 300,
+          "z": 0
+        },
+        "previous": {
+          "x": -1750,
+          "y": 300,
+          "z": 0
+        },
+        "quaternion": [
+          0,
+          -0.7071067811865475,
+          0,
+          0.7071067811865476
+        ],
+        "yaw": -1.5707963267948966,
+        "pitch": 0,
+        "bank": 0,
+        "speed": 110,
+        "health": 80,
+        "maxHealth": 80,
+        "mg": 288,
+        "cannon": 96,
+        "reloadTicksRemaining": 0,
+        "fireClock": 0,
+        "cannonClock": 0,
+        "respawnDuePlayTick": null,
+        "respawnRef": null,
+        "protectionUntilPlayTick": 0,
+        "loopProgress": 0,
+        "loopCooldown": 0,
+        "mode": "pursue",
+        "age": 0,
+        "targetId": null,
+        "aiPhase": "approach",
+        "aiPhaseTime": 0,
+        "aiWaypoint": {
+          "x": -1750,
+          "y": 300,
+          "z": 0
+        },
+        "aiTurn": 0,
+        "aiClimb": 0,
+        "aiFire": false,
+        "aiRole": "defender",
+        "aiRoleSinceTick": -120,
+        "aiProgressTick": 0,
+        "aiBestDistance": null,
+        "aiRouteStage": 0
+      },
+      {
+        "kind": "aircraft",
+        "id": 4,
+        "team": "friendly",
+        "slotId": 3,
+        "generation": 1,
+        "role": "interceptor",
+        "lifecycle": "active",
+        "position": {
+          "x": -1750,
+          "y": 300,
+          "z": 100
+        },
+        "previous": {
+          "x": -1750,
+          "y": 300,
+          "z": 100
+        },
+        "quaternion": [
+          0,
+          -0.7071067811865475,
+          0,
+          0.7071067811865476
+        ],
+        "yaw": -1.5707963267948966,
+        "pitch": 0,
+        "bank": 0,
+        "speed": 110,
+        "health": 80,
+        "maxHealth": 80,
+        "mg": 288,
+        "cannon": 96,
+        "reloadTicksRemaining": 0,
+        "fireClock": 0,
+        "cannonClock": 0,
+        "respawnDuePlayTick": null,
+        "respawnRef": null,
+        "protectionUntilPlayTick": 0,
+        "loopProgress": 0,
+        "loopCooldown": 0,
+        "mode": "pursue",
+        "age": 0,
+        "targetId": null,
+        "aiPhase": "approach",
+        "aiPhaseTime": 0,
+        "aiWaypoint": {
+          "x": -1750,
+          "y": 300,
+          "z": 100
+        },
+        "aiTurn": 0,
+        "aiClimb": 0,
+        "aiFire": false,
+        "aiRole": "defender",
+        "aiRoleSinceTick": -120,
+        "aiProgressTick": 0,
+        "aiBestDistance": null,
+        "aiRouteStage": 0
+      },
+      {
+        "kind": "aircraft",
+        "id": 5,
+        "team": "friendly",
+        "slotId": 4,
+        "generation": 1,
+        "role": "interceptor",
+        "lifecycle": "active",
+        "position": {
+          "x": -1750,
+          "y": 300,
+          "z": 200
+        },
+        "previous": {
+          "x": -1750,
+          "y": 300,
+          "z": 200
+        },
+        "quaternion": [
+          0,
+          -0.7071067811865475,
+          0,
+          0.7071067811865476
+        ],
+        "yaw": -1.5707963267948966,
+        "pitch": 0,
+        "bank": 0,
+        "speed": 110,
+        "health": 80,
+        "maxHealth": 80,
+        "mg": 288,
+        "cannon": 96,
+        "reloadTicksRemaining": 0,
+        "fireClock": 0,
+        "cannonClock": 0,
+        "respawnDuePlayTick": null,
+        "respawnRef": null,
+        "protectionUntilPlayTick": 0,
+        "loopProgress": 0,
+        "loopCooldown": 0,
+        "mode": "pursue",
+        "age": 0,
+        "targetId": null,
+        "aiPhase": "approach",
+        "aiPhaseTime": 0,
+        "aiWaypoint": {
+          "x": -1750,
+          "y": 300,
+          "z": 200
+        },
+        "aiTurn": 0,
+        "aiClimb": 0,
+        "aiFire": false,
+        "aiRole": "defender",
+        "aiRoleSinceTick": -120,
+        "aiProgressTick": 0,
+        "aiBestDistance": null,
+        "aiRouteStage": 0
+      },
+      {
+        "kind": "aircraft",
+        "id": 6,
+        "team": "enemy",
+        "slotId": 0,
+        "generation": 1,
+        "role": "interceptor",
+        "lifecycle": "active",
+        "position": {
+          "x": 1750,
+          "y": 300,
+          "z": -200
+        },
+        "previous": {
+          "x": 1750,
+          "y": 300,
+          "z": -200
+        },
+        "quaternion": [
+          0,
+          0.7071067811865475,
+          0,
+          0.7071067811865476
+        ],
+        "yaw": 1.5707963267948966,
+        "pitch": 0,
+        "bank": 0,
+        "speed": 110,
+        "health": 80,
+        "maxHealth": 80,
+        "mg": 288,
+        "cannon": 96,
+        "reloadTicksRemaining": 0,
+        "fireClock": 0,
+        "cannonClock": 0,
+        "respawnDuePlayTick": null,
+        "respawnRef": null,
+        "protectionUntilPlayTick": 0,
+        "loopProgress": 0,
+        "loopCooldown": 0,
+        "mode": "pursue",
+        "age": 0,
+        "targetId": null,
+        "aiPhase": "approach",
+        "aiPhaseTime": 0,
+        "aiWaypoint": {
+          "x": 1750,
+          "y": 300,
+          "z": -200
+        },
+        "aiTurn": 0,
+        "aiClimb": 0,
+        "aiFire": false,
+        "aiRole": "attacker",
+        "aiRoleSinceTick": -120,
+        "aiProgressTick": 0,
+        "aiBestDistance": null,
+        "aiRouteStage": 0
+      },
+      {
+        "kind": "aircraft",
+        "id": 7,
+        "team": "enemy",
+        "slotId": 1,
+        "generation": 1,
+        "role": "interceptor",
+        "lifecycle": "active",
+        "position": {
+          "x": 1750,
+          "y": 300,
+          "z": -100
+        },
+        "previous": {
+          "x": 1750,
+          "y": 300,
+          "z": -100
+        },
+        "quaternion": [
+          0,
+          0.7071067811865475,
+          0,
+          0.7071067811865476
+        ],
+        "yaw": 1.5707963267948966,
+        "pitch": 0,
+        "bank": 0,
+        "speed": 110,
+        "health": 80,
+        "maxHealth": 80,
+        "mg": 288,
+        "cannon": 96,
+        "reloadTicksRemaining": 0,
+        "fireClock": 0,
+        "cannonClock": 0,
+        "respawnDuePlayTick": null,
+        "respawnRef": null,
+        "protectionUntilPlayTick": 0,
+        "loopProgress": 0,
+        "loopCooldown": 0,
+        "mode": "pursue",
+        "age": 0,
+        "targetId": null,
+        "aiPhase": "approach",
+        "aiPhaseTime": 0,
+        "aiWaypoint": {
+          "x": 1750,
+          "y": 300,
+          "z": -100
+        },
+        "aiTurn": 0,
+        "aiClimb": 0,
+        "aiFire": false,
+        "aiRole": "attacker",
+        "aiRoleSinceTick": -120,
+        "aiProgressTick": 0,
+        "aiBestDistance": null,
+        "aiRouteStage": 0
+      },
+      {
+        "kind": "aircraft",
+        "id": 8,
+        "team": "enemy",
+        "slotId": 2,
+        "generation": 1,
+        "role": "interceptor",
+        "lifecycle": "active",
+        "position": {
+          "x": 1750,
+          "y": 300,
+          "z": 0
+        },
+        "previous": {
+          "x": 1750,
+          "y": 300,
+          "z": 0
+        },
+        "quaternion": [
+          0,
+          0.7071067811865475,
+          0,
+          0.7071067811865476
+        ],
+        "yaw": 1.5707963267948966,
+        "pitch": 0,
+        "bank": 0,
+        "speed": 110,
+        "health": 80,
+        "maxHealth": 80,
+        "mg": 288,
+        "cannon": 96,
+        "reloadTicksRemaining": 0,
+        "fireClock": 0,
+        "cannonClock": 0,
+        "respawnDuePlayTick": null,
+        "respawnRef": null,
+        "protectionUntilPlayTick": 0,
+        "loopProgress": 0,
+        "loopCooldown": 0,
+        "mode": "pursue",
+        "age": 0,
+        "targetId": null,
+        "aiPhase": "approach",
+        "aiPhaseTime": 0,
+        "aiWaypoint": {
+          "x": 1750,
+          "y": 300,
+          "z": 0
+        },
+        "aiTurn": 0,
+        "aiClimb": 0,
+        "aiFire": false,
+        "aiRole": "defender",
+        "aiRoleSinceTick": -120,
+        "aiProgressTick": 0,
+        "aiBestDistance": null,
+        "aiRouteStage": 0
+      },
+      {
+        "kind": "aircraft",
+        "id": 9,
+        "team": "enemy",
+        "slotId": 3,
+        "generation": 1,
+        "role": "interceptor",
+        "lifecycle": "active",
+        "position": {
+          "x": 1750,
+          "y": 300,
+          "z": 100
+        },
+        "previous": {
+          "x": 1750,
+          "y": 300,
+          "z": 100
+        },
+        "quaternion": [
+          0,
+          0.7071067811865475,
+          0,
+          0.7071067811865476
+        ],
+        "yaw": 1.5707963267948966,
+        "pitch": 0,
+        "bank": 0,
+        "speed": 110,
+        "health": 80,
+        "maxHealth": 80,
+        "mg": 288,
+        "cannon": 96,
+        "reloadTicksRemaining": 0,
+        "fireClock": 0,
+        "cannonClock": 0,
+        "respawnDuePlayTick": null,
+        "respawnRef": null,
+        "protectionUntilPlayTick": 0,
+        "loopProgress": 0,
+        "loopCooldown": 0,
+        "mode": "pursue",
+        "age": 0,
+        "targetId": null,
+        "aiPhase": "approach",
+        "aiPhaseTime": 0,
+        "aiWaypoint": {
+          "x": 1750,
+          "y": 300,
+          "z": 100
+        },
+        "aiTurn": 0,
+        "aiClimb": 0,
+        "aiFire": false,
+        "aiRole": "defender",
+        "aiRoleSinceTick": -120,
+        "aiProgressTick": 0,
+        "aiBestDistance": null,
+        "aiRouteStage": 0
+      },
+      {
+        "kind": "aircraft",
+        "id": 10,
+        "team": "enemy",
+        "slotId": 4,
+        "generation": 1,
+        "role": "interceptor",
+        "lifecycle": "active",
+        "position": {
+          "x": 1750,
+          "y": 300,
+          "z": 200
+        },
+        "previous": {
+          "x": 1750,
+          "y": 300,
+          "z": 200
+        },
+        "quaternion": [
+          0,
+          0.7071067811865475,
+          0,
+          0.7071067811865476
+        ],
+        "yaw": 1.5707963267948966,
+        "pitch": 0,
+        "bank": 0,
+        "speed": 110,
+        "health": 80,
+        "maxHealth": 80,
+        "mg": 288,
+        "cannon": 96,
+        "reloadTicksRemaining": 0,
+        "fireClock": 0,
+        "cannonClock": 0,
+        "respawnDuePlayTick": null,
+        "respawnRef": null,
+        "protectionUntilPlayTick": 0,
+        "loopProgress": 0,
+        "loopCooldown": 0,
+        "mode": "pursue",
+        "age": 0,
+        "targetId": null,
+        "aiPhase": "approach",
+        "aiPhaseTime": 0,
+        "aiWaypoint": {
+          "x": 1750,
+          "y": 300,
+          "z": 200
+        },
+        "aiTurn": 0,
+        "aiClimb": 0,
+        "aiFire": false,
+        "aiRole": "defender",
+        "aiRoleSinceTick": -120,
+        "aiProgressTick": 0,
+        "aiBestDistance": null,
+        "aiRouteStage": 0
+      }
+    ],
+    "player": {
+      "kind": "aircraft",
+      "id": 1,
+      "team": "friendly",
+      "slotId": 0,
+      "generation": 1,
+      "role": "player",
+      "lifecycle": "active",
+      "position": {
+        "x": -1750,
+        "y": 300,
+        "z": -200
+      },
+      "previous": {
+        "x": -1750,
+        "y": 300,
+        "z": -200
+      },
+      "quaternion": [
+        0,
+        -0.7071067811865475,
+        0,
+        0.7071067811865476
+      ],
+      "yaw": -1.5707963267948966,
+      "pitch": 0,
+      "bank": 0,
+      "speed": 110,
+      "health": 80,
+      "maxHealth": 80,
+      "mg": 288,
+      "cannon": 96,
+      "reloadTicksRemaining": 0,
+      "fireClock": 0,
+      "cannonClock": 0,
+      "respawnDuePlayTick": null,
+      "respawnRef": null,
+      "protectionUntilPlayTick": 0,
+      "loopProgress": 0,
+      "loopCooldown": 0,
+      "mode": "pursue",
+      "age": 0,
+      "targetId": null,
+      "aiPhase": "approach",
+      "aiPhaseTime": 0,
+      "aiWaypoint": {
+        "x": -1750,
+        "y": 300,
+        "z": -200
+      },
+      "aiTurn": 0,
+      "aiClimb": 0,
+      "aiFire": false,
+      "aiRole": "attacker",
+      "aiRoleSinceTick": -120,
+      "aiProgressTick": 0,
+      "aiBestDistance": null,
+      "aiRouteStage": 0
+    },
+    "allies": [
+      {
+        "kind": "aircraft",
+        "id": 2,
+        "team": "friendly",
+        "slotId": 1,
+        "generation": 1,
+        "role": "interceptor",
+        "lifecycle": "active",
+        "position": {
+          "x": -1750,
+          "y": 300,
+          "z": -100
+        },
+        "previous": {
+          "x": -1750,
+          "y": 300,
+          "z": -100
+        },
+        "quaternion": [
+          0,
+          -0.7071067811865475,
+          0,
+          0.7071067811865476
+        ],
+        "yaw": -1.5707963267948966,
+        "pitch": 0,
+        "bank": 0,
+        "speed": 110,
+        "health": 80,
+        "maxHealth": 80,
+        "mg": 288,
+        "cannon": 96,
+        "reloadTicksRemaining": 0,
+        "fireClock": 0,
+        "cannonClock": 0,
+        "respawnDuePlayTick": null,
+        "respawnRef": null,
+        "protectionUntilPlayTick": 0,
+        "loopProgress": 0,
+        "loopCooldown": 0,
+        "mode": "pursue",
+        "age": 0,
+        "targetId": null,
+        "aiPhase": "approach",
+        "aiPhaseTime": 0,
+        "aiWaypoint": {
+          "x": -1750,
+          "y": 300,
+          "z": -100
+        },
+        "aiTurn": 0,
+        "aiClimb": 0,
+        "aiFire": false,
+        "aiRole": "attacker",
+        "aiRoleSinceTick": -120,
+        "aiProgressTick": 0,
+        "aiBestDistance": null,
+        "aiRouteStage": 0
+      },
+      {
+        "kind": "aircraft",
+        "id": 3,
+        "team": "friendly",
+        "slotId": 2,
+        "generation": 1,
+        "role": "interceptor",
+        "lifecycle": "active",
+        "position": {
+          "x": -1750,
+          "y": 300,
+          "z": 0
+        },
+        "previous": {
+          "x": -1750,
+          "y": 300,
+          "z": 0
+        },
+        "quaternion": [
+          0,
+          -0.7071067811865475,
+          0,
+          0.7071067811865476
+        ],
+        "yaw": -1.5707963267948966,
+        "pitch": 0,
+        "bank": 0,
+        "speed": 110,
+        "health": 80,
+        "maxHealth": 80,
+        "mg": 288,
+        "cannon": 96,
+        "reloadTicksRemaining": 0,
+        "fireClock": 0,
+        "cannonClock": 0,
+        "respawnDuePlayTick": null,
+        "respawnRef": null,
+        "protectionUntilPlayTick": 0,
+        "loopProgress": 0,
+        "loopCooldown": 0,
+        "mode": "pursue",
+        "age": 0,
+        "targetId": null,
+        "aiPhase": "approach",
+        "aiPhaseTime": 0,
+        "aiWaypoint": {
+          "x": -1750,
+          "y": 300,
+          "z": 0
+        },
+        "aiTurn": 0,
+        "aiClimb": 0,
+        "aiFire": false,
+        "aiRole": "defender",
+        "aiRoleSinceTick": -120,
+        "aiProgressTick": 0,
+        "aiBestDistance": null,
+        "aiRouteStage": 0
+      },
+      {
+        "kind": "aircraft",
+        "id": 4,
+        "team": "friendly",
+        "slotId": 3,
+        "generation": 1,
+        "role": "interceptor",
+        "lifecycle": "active",
+        "position": {
+          "x": -1750,
+          "y": 300,
+          "z": 100
+        },
+        "previous": {
+          "x": -1750,
+          "y": 300,
+          "z": 100
+        },
+        "quaternion": [
+          0,
+          -0.7071067811865475,
+          0,
+          0.7071067811865476
+        ],
+        "yaw": -1.5707963267948966,
+        "pitch": 0,
+        "bank": 0,
+        "speed": 110,
+        "health": 80,
+        "maxHealth": 80,
+        "mg": 288,
+        "cannon": 96,
+        "reloadTicksRemaining": 0,
+        "fireClock": 0,
+        "cannonClock": 0,
+        "respawnDuePlayTick": null,
+        "respawnRef": null,
+        "protectionUntilPlayTick": 0,
+        "loopProgress": 0,
+        "loopCooldown": 0,
+        "mode": "pursue",
+        "age": 0,
+        "targetId": null,
+        "aiPhase": "approach",
+        "aiPhaseTime": 0,
+        "aiWaypoint": {
+          "x": -1750,
+          "y": 300,
+          "z": 100
+        },
+        "aiTurn": 0,
+        "aiClimb": 0,
+        "aiFire": false,
+        "aiRole": "defender",
+        "aiRoleSinceTick": -120,
+        "aiProgressTick": 0,
+        "aiBestDistance": null,
+        "aiRouteStage": 0
+      },
+      {
+        "kind": "aircraft",
+        "id": 5,
+        "team": "friendly",
+        "slotId": 4,
+        "generation": 1,
+        "role": "interceptor",
+        "lifecycle": "active",
+        "position": {
+          "x": -1750,
+          "y": 300,
+          "z": 200
+        },
+        "previous": {
+          "x": -1750,
+          "y": 300,
+          "z": 200
+        },
+        "quaternion": [
+          0,
+          -0.7071067811865475,
+          0,
+          0.7071067811865476
+        ],
+        "yaw": -1.5707963267948966,
+        "pitch": 0,
+        "bank": 0,
+        "speed": 110,
+        "health": 80,
+        "maxHealth": 80,
+        "mg": 288,
+        "cannon": 96,
+        "reloadTicksRemaining": 0,
+        "fireClock": 0,
+        "cannonClock": 0,
+        "respawnDuePlayTick": null,
+        "respawnRef": null,
+        "protectionUntilPlayTick": 0,
+        "loopProgress": 0,
+        "loopCooldown": 0,
+        "mode": "pursue",
+        "age": 0,
+        "targetId": null,
+        "aiPhase": "approach",
+        "aiPhaseTime": 0,
+        "aiWaypoint": {
+          "x": -1750,
+          "y": 300,
+          "z": 200
+        },
+        "aiTurn": 0,
+        "aiClimb": 0,
+        "aiFire": false,
+        "aiRole": "defender",
+        "aiRoleSinceTick": -120,
+        "aiProgressTick": 0,
+        "aiBestDistance": null,
+        "aiRouteStage": 0
+      }
+    ],
+    "enemies": [
+      {
+        "kind": "aircraft",
+        "id": 6,
+        "team": "enemy",
+        "slotId": 0,
+        "generation": 1,
+        "role": "interceptor",
+        "lifecycle": "active",
+        "position": {
+          "x": 1750,
+          "y": 300,
+          "z": -200
+        },
+        "previous": {
+          "x": 1750,
+          "y": 300,
+          "z": -200
+        },
+        "quaternion": [
+          0,
+          0.7071067811865475,
+          0,
+          0.7071067811865476
+        ],
+        "yaw": 1.5707963267948966,
+        "pitch": 0,
+        "bank": 0,
+        "speed": 110,
+        "health": 80,
+        "maxHealth": 80,
+        "mg": 288,
+        "cannon": 96,
+        "reloadTicksRemaining": 0,
+        "fireClock": 0,
+        "cannonClock": 0,
+        "respawnDuePlayTick": null,
+        "respawnRef": null,
+        "protectionUntilPlayTick": 0,
+        "loopProgress": 0,
+        "loopCooldown": 0,
+        "mode": "pursue",
+        "age": 0,
+        "targetId": null,
+        "aiPhase": "approach",
+        "aiPhaseTime": 0,
+        "aiWaypoint": {
+          "x": 1750,
+          "y": 300,
+          "z": -200
+        },
+        "aiTurn": 0,
+        "aiClimb": 0,
+        "aiFire": false,
+        "aiRole": "attacker",
+        "aiRoleSinceTick": -120,
+        "aiProgressTick": 0,
+        "aiBestDistance": null,
+        "aiRouteStage": 0
+      },
+      {
+        "kind": "aircraft",
+        "id": 7,
+        "team": "enemy",
+        "slotId": 1,
+        "generation": 1,
+        "role": "interceptor",
+        "lifecycle": "active",
+        "position": {
+          "x": 1750,
+          "y": 300,
+          "z": -100
+        },
+        "previous": {
+          "x": 1750,
+          "y": 300,
+          "z": -100
+        },
+        "quaternion": [
+          0,
+          0.7071067811865475,
+          0,
+          0.7071067811865476
+        ],
+        "yaw": 1.5707963267948966,
+        "pitch": 0,
+        "bank": 0,
+        "speed": 110,
+        "health": 80,
+        "maxHealth": 80,
+        "mg": 288,
+        "cannon": 96,
+        "reloadTicksRemaining": 0,
+        "fireClock": 0,
+        "cannonClock": 0,
+        "respawnDuePlayTick": null,
+        "respawnRef": null,
+        "protectionUntilPlayTick": 0,
+        "loopProgress": 0,
+        "loopCooldown": 0,
+        "mode": "pursue",
+        "age": 0,
+        "targetId": null,
+        "aiPhase": "approach",
+        "aiPhaseTime": 0,
+        "aiWaypoint": {
+          "x": 1750,
+          "y": 300,
+          "z": -100
+        },
+        "aiTurn": 0,
+        "aiClimb": 0,
+        "aiFire": false,
+        "aiRole": "attacker",
+        "aiRoleSinceTick": -120,
+        "aiProgressTick": 0,
+        "aiBestDistance": null,
+        "aiRouteStage": 0
+      },
+      {
+        "kind": "aircraft",
+        "id": 8,
+        "team": "enemy",
+        "slotId": 2,
+        "generation": 1,
+        "role": "interceptor",
+        "lifecycle": "active",
+        "position": {
+          "x": 1750,
+          "y": 300,
+          "z": 0
+        },
+        "previous": {
+          "x": 1750,
+          "y": 300,
+          "z": 0
+        },
+        "quaternion": [
+          0,
+          0.7071067811865475,
+          0,
+          0.7071067811865476
+        ],
+        "yaw": 1.5707963267948966,
+        "pitch": 0,
+        "bank": 0,
+        "speed": 110,
+        "health": 80,
+        "maxHealth": 80,
+        "mg": 288,
+        "cannon": 96,
+        "reloadTicksRemaining": 0,
+        "fireClock": 0,
+        "cannonClock": 0,
+        "respawnDuePlayTick": null,
+        "respawnRef": null,
+        "protectionUntilPlayTick": 0,
+        "loopProgress": 0,
+        "loopCooldown": 0,
+        "mode": "pursue",
+        "age": 0,
+        "targetId": null,
+        "aiPhase": "approach",
+        "aiPhaseTime": 0,
+        "aiWaypoint": {
+          "x": 1750,
+          "y": 300,
+          "z": 0
+        },
+        "aiTurn": 0,
+        "aiClimb": 0,
+        "aiFire": false,
+        "aiRole": "defender",
+        "aiRoleSinceTick": -120,
+        "aiProgressTick": 0,
+        "aiBestDistance": null,
+        "aiRouteStage": 0
+      },
+      {
+        "kind": "aircraft",
+        "id": 9,
+        "team": "enemy",
+        "slotId": 3,
+        "generation": 1,
+        "role": "interceptor",
+        "lifecycle": "active",
+        "position": {
+          "x": 1750,
+          "y": 300,
+          "z": 100
+        },
+        "previous": {
+          "x": 1750,
+          "y": 300,
+          "z": 100
+        },
+        "quaternion": [
+          0,
+          0.7071067811865475,
+          0,
+          0.7071067811865476
+        ],
+        "yaw": 1.5707963267948966,
+        "pitch": 0,
+        "bank": 0,
+        "speed": 110,
+        "health": 80,
+        "maxHealth": 80,
+        "mg": 288,
+        "cannon": 96,
+        "reloadTicksRemaining": 0,
+        "fireClock": 0,
+        "cannonClock": 0,
+        "respawnDuePlayTick": null,
+        "respawnRef": null,
+        "protectionUntilPlayTick": 0,
+        "loopProgress": 0,
+        "loopCooldown": 0,
+        "mode": "pursue",
+        "age": 0,
+        "targetId": null,
+        "aiPhase": "approach",
+        "aiPhaseTime": 0,
+        "aiWaypoint": {
+          "x": 1750,
+          "y": 300,
+          "z": 100
+        },
+        "aiTurn": 0,
+        "aiClimb": 0,
+        "aiFire": false,
+        "aiRole": "defender",
+        "aiRoleSinceTick": -120,
+        "aiProgressTick": 0,
+        "aiBestDistance": null,
+        "aiRouteStage": 0
+      },
+      {
+        "kind": "aircraft",
+        "id": 10,
+        "team": "enemy",
+        "slotId": 4,
+        "generation": 1,
+        "role": "interceptor",
+        "lifecycle": "active",
+        "position": {
+          "x": 1750,
+          "y": 300,
+          "z": 200
+        },
+        "previous": {
+          "x": 1750,
+          "y": 300,
+          "z": 200
+        },
+        "quaternion": [
+          0,
+          0.7071067811865475,
+          0,
+          0.7071067811865476
+        ],
+        "yaw": 1.5707963267948966,
+        "pitch": 0,
+        "bank": 0,
+        "speed": 110,
+        "health": 80,
+        "maxHealth": 80,
+        "mg": 288,
+        "cannon": 96,
+        "reloadTicksRemaining": 0,
+        "fireClock": 0,
+        "cannonClock": 0,
+        "respawnDuePlayTick": null,
+        "respawnRef": null,
+        "protectionUntilPlayTick": 0,
+        "loopProgress": 0,
+        "loopCooldown": 0,
+        "mode": "pursue",
+        "age": 0,
+        "targetId": null,
+        "aiPhase": "approach",
+        "aiPhaseTime": 0,
+        "aiWaypoint": {
+          "x": 1750,
+          "y": 300,
+          "z": 200
+        },
+        "aiTurn": 0,
+        "aiClimb": 0,
+        "aiFire": false,
+        "aiRole": "defender",
+        "aiRoleSinceTick": -120,
+        "aiProgressTick": 0,
+        "aiBestDistance": null,
+        "aiRouteStage": 0
+      }
+    ],
+    "flags": {
+      "friendly": {
+        "flagId": "core-A",
+        "homeTeam": "friendly",
+        "roundEpoch": 0,
+        "revision": 0,
+        "state": "atHome"
+      },
+      "enemy": {
+        "flagId": "core-B",
+        "homeTeam": "enemy",
+        "roundEpoch": 0,
+        "revision": 0,
+        "state": "atHome"
+      }
+    },
+    "scores": {
+      "friendly": 0,
+      "enemy": 0
+    },
+    "bullets": [],
+    "events": [],
+    "stats": {
+      "captures": 0,
+      "returns": 0,
+      "kills": 0,
+      "deaths": 0,
+      "shots": 0,
+      "hits": 0,
+      "loops": 0,
+      "damageTaken": 0,
+      "teamKills": {
+        "friendly": 0,
+        "enemy": 0
+      },
+      "teamReturns": {
+        "friendly": 0,
+        "enemy": 0
+      }
+    },
+    "result": null,
+    "recordEligible": true,
+    "lastCapturePlayTick": 0,
+    "roundScored": false,
+    "inputEpoch": 0
+  },
+  "screen": "home",
+  "render": {
+    "queue": {
+      "status": "pending",
+      "failure": null,
+      "pendingMs": 66.60000000009313,
+      "lastCompletedPendingMs": 228.29999999999927,
+      "completedFrameIntervalMs": 233.39999999999964,
+      "submittedCount": 8,
+      "completedCount": 7,
+      "skippedCount": 12
+    },
+    "calls": 134,
+    "triangles": 188928,
+    "geometries": 41,
+    "textures": 4,
+    "particles": 0,
+    "effectCapacity": 240,
+    "wrecks": 0,
+    "wreckCapacity": 10,
+    "planes": 10,
+    "width": 393,
+    "height": 852,
+    "pixelRatio": 1,
+    "camera": {
+      "fov": 64,
+      "near": 0.5,
+      "far": 22000,
+      "position": [
+        -1779,
+        311,
+        -200
+      ],
+      "quaternion": [
+        -0.008117575030893293,
+        -0.7070601848326759,
+        -0.008117575030893292,
+        0.707060184832676
+      ]
+    },
+    "aircraftTracers": {
+      "segments": 0,
+      "capacity": 1024,
+      "corePx": 1.5,
+      "outlinePx": 2.5,
+      "tailSeconds": 0.045,
+      "depthTest": true,
+      "resolution": [
+        393,
+        852
+      ]
+    },
+    "flags": {
+      "bases": 2,
+      "cores": 2,
+      "carriedCores": 0
+    }
+  },
+  "layout": {
+    "#home": {
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 393,
+        "height": 852
+      },
+      "fontFamily": "system-ui, -apple-system, \"Hiragino Kaku Gothic ProN\", \"Noto Sans JP\", sans-serif",
+      "fontSize": "16px",
+      "color": "rgb(239, 244, 237)",
+      "background": "rgba(0, 0, 0, 0)",
+      "display": "flex"
+    },
+    ".brand-line": {
+      "rect": {
+        "x": 28,
+        "y": 22,
+        "width": 337,
+        "height": 37
+      },
+      "fontFamily": "system-ui, -apple-system, \"Hiragino Kaku Gothic ProN\", \"Noto Sans JP\", sans-serif",
+      "fontSize": "9px",
+      "color": "rgb(219, 228, 223)",
+      "background": "rgba(0, 0, 0, 0)",
+      "display": "flex"
+    },
+    ".home-copy": {
+      "rect": {
+        "x": 28,
+        "y": 110.109375,
+        "width": 337,
+        "height": 151.1875
+      },
+      "fontFamily": "system-ui, -apple-system, \"Hiragino Kaku Gothic ProN\", \"Noto Sans JP\", sans-serif",
+      "fontSize": "16px",
+      "color": "rgb(239, 244, 237)",
+      "background": "rgba(0, 0, 0, 0)",
+      "display": "block"
+    },
+    "#title": {
+      "rect": {
+        "x": 28,
+        "y": 141.109375,
+        "width": 337,
+        "height": 61
+      },
+      "fontFamily": "\"Hiragino Mincho ProN\", \"Yu Mincho\", serif",
+      "fontSize": "43px",
+      "color": "rgb(239, 244, 237)",
+      "background": "rgba(0, 0, 0, 0)",
+      "display": "block"
+    },
+    ".intro": {
+      "rect": {
+        "x": 28,
+        "y": 217.109375,
+        "width": 337,
+        "height": 44.1875
+      },
+      "fontFamily": "system-ui, -apple-system, \"Hiragino Kaku Gothic ProN\", \"Noto Sans JP\", sans-serif",
+      "fontSize": "13px",
+      "color": "rgb(230, 238, 234)",
+      "background": "rgba(0, 0, 0, 0)",
+      "display": "block"
+    },
+    ".briefing": {
+      "rect": {
+        "x": 28,
+        "y": 261.296875,
+        "width": 337,
+        "height": 518.53125
+      },
+      "fontFamily": "system-ui, -apple-system, \"Hiragino Kaku Gothic ProN\", \"Noto Sans JP\", sans-serif",
+      "fontSize": "16px",
+      "color": "rgb(239, 244, 237)",
+      "background": "rgba(0, 0, 0, 0)",
+      "display": "block"
+    },
+    ".mode-picker": {
+      "rect": {
+        "x": 28,
+        "y": 480.640625,
+        "width": 337,
+        "height": 67
+      },
+      "fontFamily": "system-ui, -apple-system, \"Hiragino Kaku Gothic ProN\", \"Noto Sans JP\", sans-serif",
+      "fontSize": "16px",
+      "color": "rgb(239, 244, 237)",
+      "background": "rgba(0, 0, 0, 0)",
+      "display": "flex"
+    },
+    "#start": {
+      "rect": {
+        "x": 28,
+        "y": 559.640625,
+        "width": 337,
+        "height": 52
+      },
+      "fontFamily": "system-ui, -apple-system, \"Hiragino Kaku Gothic ProN\", \"Noto Sans JP\", sans-serif",
+      "fontSize": "15px",
+      "color": "rgb(21, 44, 53)",
+      "background": "rgb(229, 204, 152)",
+      "display": "flex"
+    },
+    ".home-actions": {
+      "rect": {
+        "x": 28,
+        "y": 735.828125,
+        "width": 337,
+        "height": 44
+      },
+      "fontFamily": "system-ui, -apple-system, \"Hiragino Kaku Gothic ProN\", \"Noto Sans JP\", sans-serif",
+      "fontSize": "16px",
+      "color": "rgb(239, 244, 237)",
+      "background": "rgba(0, 0, 0, 0)",
+      "display": "flex"
+    },
+    ".home-footer": {
+      "rect": {
+        "x": 28,
+        "y": 793.828125,
+        "width": 337,
+        "height": 44
+      },
+      "fontFamily": "system-ui, -apple-system, \"Hiragino Kaku Gothic ProN\", \"Noto Sans JP\", sans-serif",
+      "fontSize": "9px",
+      "color": "rgb(148, 175, 179)",
+      "background": "rgba(0, 0, 0, 0)",
+      "display": "flex"
+    },
+    "#hud": {
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "fontFamily": "system-ui, -apple-system, \"Hiragino Kaku Gothic ProN\", \"Noto Sans JP\", sans-serif",
+      "fontSize": "16px",
+      "color": "rgb(239, 244, 237)",
+      "background": "rgba(0, 0, 0, 0)",
+      "display": "none"
+    },
+    ".hud-top": {
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "fontFamily": "system-ui, -apple-system, \"Hiragino Kaku Gothic ProN\", \"Noto Sans JP\", sans-serif",
+      "fontSize": "16px",
+      "color": "rgb(239, 244, 237)",
+      "background": "rgba(0, 0, 0, 0)",
+      "display": "flex"
+    },
+    ".flight-data": {
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "fontFamily": "system-ui, -apple-system, \"Hiragino Kaku Gothic ProN\", \"Noto Sans JP\", sans-serif",
+      "fontSize": "16px",
+      "color": "rgb(239, 244, 237)",
+      "background": "rgba(0, 0, 0, 0)",
+      "display": "block"
+    },
+    "#pause-screen .panel": {
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "fontFamily": "system-ui, -apple-system, \"Hiragino Kaku Gothic ProN\", \"Noto Sans JP\", sans-serif",
+      "fontSize": "16px",
+      "color": "rgb(239, 244, 237)",
+      "background": "rgba(0, 0, 0, 0)",
+      "display": "block"
+    },
+    "#result .panel": {
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "fontFamily": "system-ui, -apple-system, \"Hiragino Kaku Gothic ProN\", \"Noto Sans JP\", sans-serif",
+      "fontSize": "16px",
+      "color": "rgb(239, 244, 237)",
+      "background": "rgba(0, 0, 0, 0)",
+      "display": "block"
+    },
+    "#control-settings": {
+      "rect": {
+        "x": 6,
+        "y": 46,
+        "width": 381,
+        "height": 760
+      },
+      "fontFamily": "system-ui, -apple-system, \"Hiragino Kaku Gothic ProN\", \"Noto Sans JP\", sans-serif",
+      "fontSize": "16px",
+      "color": "rgb(237, 242, 233)",
+      "background": "rgba(0, 0, 0, 0)",
+      "display": "block"
+    },
+    ".settings-header": {
+      "rect": {
+        "x": 21,
+        "y": 59,
+        "width": 351,
+        "height": 44
+      },
+      "fontFamily": "system-ui, -apple-system, \"Hiragino Kaku Gothic ProN\", \"Noto Sans JP\", sans-serif",
+      "fontSize": "16px",
+      "color": "rgb(237, 242, 233)",
+      "background": "rgba(0, 0, 0, 0)",
+      "display": "flex"
+    },
+    ".settings-main": {
+      "rect": {
+        "x": 21,
+        "y": 186.21875,
+        "width": 351,
+        "height": 541.78125
+      },
+      "fontFamily": "system-ui, -apple-system, \"Hiragino Kaku Gothic ProN\", \"Noto Sans JP\", sans-serif",
+      "fontSize": "16px",
+      "color": "rgb(237, 242, 233)",
+      "background": "rgba(0, 0, 0, 0)",
+      "display": "block"
+    },
+    "#control-preview": {
+      "rect": {
+        "x": 75.03125,
+        "y": 157.40625,
+        "width": 238.921875,
+        "height": 518
+      },
+      "fontFamily": "system-ui, -apple-system, \"Hiragino Kaku Gothic ProN\", \"Noto Sans JP\", sans-serif",
+      "fontSize": "16px",
+      "color": "rgb(237, 242, 233)",
+      "background": "rgba(0, 0, 0, 0)",
+      "display": "block"
+    },
+    "#control-save": {
+      "rect": {
+        "x": 201.5,
+        "y": 745,
+        "width": 170.5,
+        "height": 48
+      },
+      "fontFamily": "system-ui, -apple-system, \"Hiragino Kaku Gothic ProN\", \"Noto Sans JP\", sans-serif",
+      "fontSize": "14.4px",
+      "color": "rgb(21, 44, 53)",
+      "background": "rgb(229, 204, 152)",
+      "display": "flex"
+    },
+    "#control-close": {
+      "rect": {
+        "x": 328,
+        "y": 59,
+        "width": 44,
+        "height": 44
+      },
+      "fontFamily": "system-ui, -apple-system, \"Hiragino Kaku Gothic ProN\", \"Noto Sans JP\", sans-serif",
+      "fontSize": "22.4px",
+      "color": "rgb(232, 237, 229)",
+      "background": "rgb(16, 44, 58)",
+      "display": "grid"
+    },
+    "#throttle": {
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "fontFamily": "system-ui, -apple-system, \"Hiragino Kaku Gothic ProN\", \"Noto Sans JP\", sans-serif",
+      "fontSize": "14px",
+      "color": "rgb(242, 224, 181)",
+      "background": "rgba(0, 0, 0, 0)",
+      "display": "none"
+    },
+    "#fire": {
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "fontFamily": "system-ui, -apple-system, \"Hiragino Kaku Gothic ProN\", \"Noto Sans JP\", sans-serif",
+      "fontSize": "14px",
+      "color": "rgb(242, 224, 181)",
+      "background": "rgba(0, 0, 0, 0)",
+      "display": "block"
+    },
+    "#loop": {
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "fontFamily": "system-ui, -apple-system, \"Hiragino Kaku Gothic ProN\", \"Noto Sans JP\", sans-serif",
+      "fontSize": "16px",
+      "color": "rgb(242, 224, 181)",
+      "background": "rgba(0, 0, 0, 0)",
+      "display": "flex"
+    }
+  },
+  "settings": {
+    "mode": "easy",
+    "editor": "touch"
+  },
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "dpr": 1,
+  "textScale": 1,
+  "zoom": 1,
+  "fonts": "loaded",
+  "candidateSourceCommit": "af8d9b9ebcf79c55b4c2b650991f266bf5360cba"
+}

@@ -1,0 +1,351 @@
+{
+  "schemaVersion": 1,
+  "runtimeCommit": "af8d9b9ebcf79c55b4c2b650991f266bf5360cba",
+  "loadedTestCommit": "12bebe666e8b9290470b07780edaa37355ef5a21",
+  "stats": {
+    "startTime": "2026-10-11T03:32:27.685Z",
+    "duration": 574398.4970000001,
+    "expected": 42,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "file": "game.spec.ts",
+      "title": "home → countdown → flight → pause/settings discard → resume → capture → result → retry",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 17375,
+      "errors": []
+    },
+    {
+      "file": "game.spec.ts",
+      "title": "blur/pagehide pause all clocks, guide Escape preserves pause and returns focus",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 16095,
+      "errors": []
+    },
+    {
+      "file": "game.spec.ts",
+      "title": "time tie produces one frozen result and one completed record despite repeated callbacks",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 26173,
+      "errors": []
+    },
+    {
+      "file": "game.spec.ts",
+      "title": "twenty retry results remain bounded, terminal identities survive reload and unfinished matches are not saved",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 31016,
+      "errors": []
+    },
+    {
+      "file": "game.spec.ts",
+      "title": "three-point capture on the final tick wins before time adjudication",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 16139,
+      "errors": []
+    },
+    {
+      "file": "game.spec.ts",
+      "title": "product frame adapter holds short edges through zero steps, caps catch-up and pauses backlog",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 12991,
+      "errors": []
+    },
+    {
+      "file": "game.spec.ts",
+      "title": "ally respawn and live warnings update on change; simultaneous capture precedes the final-minute notice",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 10415,
+      "errors": []
+    },
+    {
+      "file": "game.spec.ts",
+      "title": "home → countdown → flight → pause/settings discard → resume → capture → result → retry",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 8959,
+      "errors": []
+    },
+    {
+      "file": "game.spec.ts",
+      "title": "blur/pagehide pause all clocks, guide Escape preserves pause and returns focus",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 6884,
+      "errors": []
+    },
+    {
+      "file": "game.spec.ts",
+      "title": "time tie produces one frozen result and one completed record despite repeated callbacks",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 7028,
+      "errors": []
+    },
+    {
+      "file": "game.spec.ts",
+      "title": "twenty retry results remain bounded, terminal identities survive reload and unfinished matches are not saved",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 14805,
+      "errors": []
+    },
+    {
+      "file": "game.spec.ts",
+      "title": "three-point capture on the final tick wins before time adjudication",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 5218,
+      "errors": []
+    },
+    {
+      "file": "game.spec.ts",
+      "title": "product frame adapter holds short edges through zero steps, caps catch-up and pauses backlog",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 4980,
+      "errors": []
+    },
+    {
+      "file": "game.spec.ts",
+      "title": "ally respawn and live warnings update on change; simultaneous capture precedes the final-minute notice",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 5286,
+      "errors": []
+    },
+    {
+      "file": "input-settings.spec.ts",
+      "title": "short key input survives sampling without steps, then changes target once across catch-up ticks",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 11868,
+      "errors": []
+    },
+    {
+      "file": "input-settings.spec.ts",
+      "title": "Easy ignores manual throttle and fire, retains six key actions and one touch control",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 14184,
+      "errors": []
+    },
+    {
+      "file": "input-settings.spec.ts",
+      "title": "focused slider combines pointer + focused positive - brake once and clears only focused keys",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 13842,
+      "errors": []
+    },
+    {
+      "file": "input-settings.spec.ts",
+      "title": "live/preview lever uses the same safe rectangle at 320x568, including 200% text",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 14170,
+      "errors": []
+    },
+    {
+      "file": "input-settings.spec.ts",
+      "title": "live/preview lever uses the same safe rectangle at 393x852, including 200% text",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 13390,
+      "errors": []
+    },
+    {
+      "file": "input-settings.spec.ts",
+      "title": "live/preview lever uses the same safe rectangle at 568x320, including 200% text",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 15833,
+      "errors": []
+    },
+    {
+      "file": "input-settings.spec.ts",
+      "title": "live/preview lever uses the same safe rectangle at 852x393, including 200% text",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 16764,
+      "errors": []
+    },
+    {
+      "file": "input-settings.spec.ts",
+      "title": "settings Cancel writes zero, Save commits all owned values, future raw stays intact with explicit session use",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 30191,
+      "errors": []
+    },
+    {
+      "file": "input-settings.spec.ts",
+      "title": "short key input survives sampling without steps, then changes target once across catch-up ticks",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 4587,
+      "errors": []
+    },
+    {
+      "file": "input-settings.spec.ts",
+      "title": "Easy ignores manual throttle and fire, retains six key actions and one touch control",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 4193,
+      "errors": []
+    },
+    {
+      "file": "input-settings.spec.ts",
+      "title": "focused slider combines pointer + focused positive - brake once and clears only focused keys",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 5436,
+      "errors": []
+    },
+    {
+      "file": "input-settings.spec.ts",
+      "title": "live/preview lever uses the same safe rectangle at 320x568, including 200% text",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 7377,
+      "errors": []
+    },
+    {
+      "file": "input-settings.spec.ts",
+      "title": "live/preview lever uses the same safe rectangle at 393x852, including 200% text",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 7637,
+      "errors": []
+    },
+    {
+      "file": "input-settings.spec.ts",
+      "title": "live/preview lever uses the same safe rectangle at 568x320, including 200% text",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 6560,
+      "errors": []
+    },
+    {
+      "file": "input-settings.spec.ts",
+      "title": "live/preview lever uses the same safe rectangle at 852x393, including 200% text",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 6798,
+      "errors": []
+    },
+    {
+      "file": "input-settings.spec.ts",
+      "title": "settings Cancel writes zero, Save commits all owned values, future raw stays intact with explicit session use",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 8033,
+      "errors": []
+    },
+    {
+      "file": "scene.spec.ts",
+      "title": "source camera and ten renderer slots stay stable through twenty retries",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 18550,
+      "errors": []
+    },
+    {
+      "file": "scene.spec.ts",
+      "title": "death freezes the camera and respawn resets it to the source pose",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 16041,
+      "errors": []
+    },
+    {
+      "file": "scene.spec.ts",
+      "title": "a carried core is one separate child visual and drops without resource growth",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 18140,
+      "errors": []
+    },
+    {
+      "file": "scene.spec.ts",
+      "title": "render effects are bounded, expire at five seconds and clear on retry",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 15846,
+      "errors": []
+    },
+    {
+      "file": "scene.spec.ts",
+      "title": "context loss pauses all clocks and restored graphics requires explicit resume",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 40379,
+      "errors": []
+    },
+    {
+      "file": "scene.spec.ts",
+      "title": "accelerated twelve effective minute renderer soak keeps resources bounded",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 37673,
+      "errors": []
+    },
+    {
+      "file": "scene.spec.ts",
+      "title": "source camera and ten renderer slots stay stable through twenty retries",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 9430,
+      "errors": []
+    },
+    {
+      "file": "scene.spec.ts",
+      "title": "death freezes the camera and respawn resets it to the source pose",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 6000,
+      "errors": []
+    },
+    {
+      "file": "scene.spec.ts",
+      "title": "a carried core is one separate child visual and drops without resource growth",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 6401,
+      "errors": []
+    },
+    {
+      "file": "scene.spec.ts",
+      "title": "render effects are bounded, expire at five seconds and clear on retry",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 6788,
+      "errors": []
+    },
+    {
+      "file": "scene.spec.ts",
+      "title": "context loss pauses all clocks and restored graphics requires explicit resume",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 9047,
+      "errors": []
+    },
+    {
+      "file": "scene.spec.ts",
+      "title": "accelerated twelve effective minute renderer soak keeps resources bounded",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 23742,
+      "errors": []
+    }
+  ]
+}
