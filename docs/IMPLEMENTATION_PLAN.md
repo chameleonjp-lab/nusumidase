@@ -232,3 +232,15 @@ simulationとinputの再現traceは数値/ID/seedのみとし、device識別や�
 2026-10-05の文書作成時点で、対象repo/main/READMEと固定元の該当sourceを読み、旗ルールと共通レバー契約を計画へ取り込んだ。元作調査snapshot28ファイルのGit blob hash照合と、flight/flight-assist/aircraft-damage/missionの固定取得も行った。ただし元作全関数の包括的正しさを保証したものではない。
 
 ヌスミダセ本体・テスト・build・browser実行・8画面比較・実機性能・バランス試験はすべて未実施。本体がない段階でgreen扱いしない。文書の独立レビューとremote全文readbackの実施結果はPR本文で最終commitと合わせて報告する。実装の着手/公開/mergeをこの計画書だけで自動実行しない。
+
+## 2026-10-11依頼：仕様更新の実施と後続本体受入
+
+開始mainは `fc6c11e6f5edaf5bac4749beabea5589bb6f4108`。前回の文書だけの状態と異なり本体が追加済み。今回変更するのはこのファイルとREQUIREMENTS.mdだけで、起動/unit/build/browser/CIを本作の新しい合格結果として実行しない。文書のdiff・共通数値・対象外候補・検査と実施の区別をread-backで確認し、独立した作業branchからDraft PRへ提出する。ゲーム本体、依存、公開設定は変更しない。
+
+後続本体変更を許可された際は、[共通追補](REQUIREMENTS.md) のR1–R8とT1–T6を実稼働simulation/input/renderへ接続する。まず円内A950m/円外B400mと同順位順序・20cm距離逆転の赤い回帰検査を用意し、IDはmatch/epoch/team/slot/generation、余裕幅は短辺0.015（今回の設計値）で境界を確認する。flags/base/friendlyを含む混合候補で対象外を検査する。補助turn2.5/s・climb1.5/s、手入力優先、invalid/reset/pause/respawnの履歴解除、自動射撃の同tick同ID再検証を検査する。
+
+Normalは射線上500mの固定点を有効cameraから投影し、敵距離/生死/fireで吸着させない。R4/R5の母艦衝突/沈没は本作固有の該当worldがない限り導入しないが、描画/投影/circleの同camera契約は適用。R6は実遮蔽物で発生を確認して必要な範囲だけ修正する。R7のセンリョウ地形回避値を本作へ新規移植しない。R8はNormal別指/1指/キー、Easy自動を分け、12tick×3入力の実発射有無と姿勢/camera/照準を比較する。
+
+指定5viewport×DPR1/2の製品bundle画像を実際に開き、停止/設定保存取消/結果再試行/復活/round resetで入力と保持IDを確認する。文字拡大/縦横/セーフエリアと描画30/60/120Hzを固定60Hz論理と分ける。数値・EventTarget・Chromium・自動WebKit・実iPhone Safariの結果を別欄に残す。実機へ到達できなければ未確認と記し、未再現の上下ずれを解決済みにしない。
+
+今回の8作品の他7件の合格は本作の実行合格ではない。後続の実装担当と検査candidateを確定してから必要な本体修正を行い、元のCTF武器/試合/復活/旗ルールと専用保存領域を保持する。merge・Ready化・deployは利用者の別判断。
