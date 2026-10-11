@@ -123,6 +123,10 @@ test('render effects are bounded, expire at five seconds and clear on retry', as
 });
 
 test('context loss pauses all clocks and restored graphics requires explicit resume', async ({ page }) => {
+  test.setTimeout(120000);
+  const graphicsErrors: string[] = [];
+  page.on('console', message => { if (message.type() === 'error' || /INVALID_OPERATION/.test(message.text())) graphicsErrors.push(message.text()); });
+  page.on('pageerror', error => graphicsErrors.push(error.message));
   await ready(page);
   const available = await page.evaluate(() => {
     const h = (window as any).__nusumidase, extension = h.scene.renderer.getContext().getExtension('WEBGL_lose_context');
@@ -140,6 +144,22 @@ test('context loss pauses all clocks and restored graphics requires explicit res
   expect(await page.evaluate(() => (window as any).__nusumidase.state.phase)).toBe('paused');
   await page.locator('#resume').click();
   expect(await page.evaluate(() => (window as any).__nusumidase.state.phase)).toBe('playing');
+  // A second loss can return Home, where the disabled Start still has a recovery path.
+  await page.evaluate(() => {
+    const h = (window as any).__nusumidase;
+    (window as any).__lostGraphics = h.scene.renderer.getContext().getExtension('WEBGL_lose_context');
+    (window as any).__lostGraphics.loseContext();
+  });
+  await expect(page.locator('#pause-screen')).toBeVisible();
+  await page.locator('#pause-home').click();
+  await expect(page.locator('#start')).toBeDisabled();
+  await expect(page.locator('#startup-error')).toContainText('描画が中断');
+  await expect(page.locator('#reload')).toBeVisible();
+  await page.evaluate(() => (window as any).__lostGraphics.restoreContext());
+  await expect(page.locator('#start')).toBeEnabled({ timeout: 60000 });
+  expect(await page.evaluate(() => (window as any).__nusumidase.state.phase)).toBe('ready');
+  await expect(page.locator('#startup-error')).toBeHidden();
+  expect(graphicsErrors).toEqual([]);
 });
 
 test('accelerated twelve effective minute renderer soak keeps resources bounded', async ({ page }, testInfo) => {

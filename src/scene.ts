@@ -134,22 +134,41 @@ export class NusumidaseScene {
 
   async prepare(): Promise<void> {
     if (this.disposed) return;
-    // Precompile both quality levels, the carried core and pooled effects.
-    const visibility = [...this.planes.values()].map(plane => plane.visual.root.visible);
+    // Compile and upload the whole immutable pool behind the loading screen.
+    // Compilation alone does not upload a geometry outside the initial view
+    // (notably the A core letter). Warmup must exercise it before Start.
+    const planes = [...this.planes.values()];
+    const visibility = planes.map(plane => plane.visual.root.visible);
     const flagsVisible = this.flags.root.visible;
-    for (const plane of this.planes.values()) plane.visual.root.visible = true;
+    const culling = new Map<Mesh, boolean>();
+    this.scene.traverse(object => {
+      if (object instanceof Mesh) {
+        culling.set(object, object.frustumCulled);
+        object.frustumCulled = false;
+      }
+    });
+    for (const plane of planes) plane.visual.root.visible = true;
     this.flags.root.visible = true;
-    await this.renderer.compileAsync(this.scene, this.camera);
-    [...this.planes.values()].forEach((plane, index) => { plane.visual.root.visible = visibility[index]; });
-    this.flags.root.visible = flagsVisible;
+    try {
+      await this.renderer.compileAsync(this.scene, this.camera);
+      if (this.disposed) return;
+      const sample = new Vector3(0, 0, -80).applyQuaternion(this.camera.quaternion).add(this.camera.position);
+      this.particlePositions.set(sample.toArray()); this.particleColors.set([1, .6, .2]);
+      this.particleSizes[0] = 8; this.particleOpacity[0] = 1;
+      for (const attribute of Object.values(this.particleGeometry.attributes)) attribute.needsUpdate = true;
+      this.particleGeometry.setDrawRange(0, 1); this.aircraftTracers.prime(sample);
+      this.renderer.render(this.scene, this.camera);
+    } finally {
+      // Restore every original flag/airframe culling and visibility value,
+      // including compile rejection or disposal during the async preparation.
+      planes.forEach((plane, index) => { plane.visual.root.visible = visibility[index]; });
+      this.flags.root.visible = flagsVisible;
+      for (const [mesh, frustumCulled] of culling) mesh.frustumCulled = frustumCulled;
+      this.particleGeometry.setDrawRange(0, 0); this.aircraftTracers.update([]);
+    }
     if (this.disposed) return;
-    const sample = new Vector3(0, 0, -80).applyQuaternion(this.camera.quaternion).add(this.camera.position);
-    this.particlePositions.set(sample.toArray()); this.particleColors.set([1, .6, .2]);
-    this.particleSizes[0] = 8; this.particleOpacity[0] = 1;
-    for (const attribute of Object.values(this.particleGeometry.attributes)) attribute.needsUpdate = true;
-    this.particleGeometry.setDrawRange(0, 1); this.aircraftTracers.prime(sample);
-    this.renderer.render(this.scene, this.camera);
-    this.particleGeometry.setDrawRange(0, 0); this.aircraftTracers.update([]);
+    // The visible completion barrier includes a clean frame with live culling
+    // and no priming tracers/particles before preparation is acknowledged.
     this.renderer.render(this.scene, this.camera); this.renderQueue.submit(performance.now());
     while (!this.disposed) {
       const status = this.renderQueue.poll(performance.now());

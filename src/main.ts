@@ -49,7 +49,8 @@ function showBest() { const best = records.load().best[recordGroup(state.mode,RU
 function setScreen(next: typeof screen) {
   settings.close(); rules.close(); clearInput(); screen = next; app.dataset.screen = next;
   el('home').hidden = next !== 'home'; el('hud').hidden = next === 'home' || next === 'result'; el('pause-screen').hidden = next !== 'paused'; el('result').hidden = next !== 'result';
-  accumulator = 0; lastFrame = 0; const id = next === 'home' ? 'start' : next === 'paused' ? 'resume' : next === 'result' ? 'retry' : 'flight';
+  if(next==='home'&&contextLost){el('startup-error').hidden=false;el('startup-error').textContent='描画が中断されました。復帰を待つか、再読み込みしてください';el('reload').hidden=false;}
+  accumulator = 0; lastFrame = 0; const id = next === 'home' ? contextLost?'reload':'start' : next === 'paused' ? 'resume' : next === 'result' ? 'retry' : 'flight';
   el(id).focus({preventScroll:true}); syncAudio(true);
 }
 function announce(text: string, ticks = 180) { el('announcement').textContent = text; notificationUntilTick = state.tick + ticks; }
@@ -75,9 +76,10 @@ window.addEventListener('pagehide',()=>pause('画面を離れたため一時停�
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pause('画面が非表示になったため一時停止しました');},{signal});
 function resized() { clearInput(); scene?.resize(); }
 window.addEventListener('resize',resized,{signal}); window.addEventListener('orientationchange',resized,{signal}); window.visualViewport?.addEventListener('resize',resized,{signal});
-canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();graphicsEpoch++;contextLost=true;ready=false;el<HTMLButtonElement>('start').disabled=true;if(screen==='home'){el('startup-error').hidden=false;el('startup-error').textContent='描画が中断されました。復帰を待つか、再読み込みしてください';el('reload').hidden=false;}pause('描画が中断されました。復帰後も再開操作が必要です'); el('resume').hidden=true;},{signal});
-canvas.addEventListener('webglcontextrestored',()=>void restoreGraphics(),{signal});
-async function restoreGraphics() { const epoch=++graphicsEpoch; try { scene?.dispose(); const restored=new NusumidaseScene(canvas,overlay); scene=restored; restored.render(state,true); await restored.prepare(); if(disposed||epoch!==graphicsEpoch||scene!==restored)return; contextLost=false; ready=true; el<HTMLButtonElement>('start').disabled=false;el('start').textContent='出撃する';el('startup-error').hidden=true;el('reload').hidden=true;el('resume').hidden=false; el('pause-reason').textContent='描画が復帰しました。飛行を再開できます'; }catch{if(disposed||epoch!==graphicsEpoch)return;if(screen==='home'){el('startup-error').hidden=false;el('startup-error').textContent='描画を復旧できません。再読み込みしてください';el('reload').hidden=false;}el('pause-reason').textContent='描画を復旧できません。再読み込みしてください';el('pause-reload').hidden=false;} }
+canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();graphicsEpoch++;contextLost=true;ready=false;const lostScene=scene;scene=null;lostScene?.dispose();el<HTMLButtonElement>('start').disabled=true;if(screen==='home'){el('startup-error').hidden=false;el('startup-error').textContent='描画が中断されました。復帰を待つか、再読み込みしてください';el('reload').hidden=false;}pause('描画が中断されました。復帰後も再開操作が必要です'); el('resume').hidden=true;},{signal});
+// Retire old GL handles while the context is lost; rebuild after the restored event dispatch.
+canvas.addEventListener('webglcontextrestored',()=>{const epoch=graphicsEpoch;setTimeout(()=>{if(!disposed&&contextLost&&epoch===graphicsEpoch)void restoreGraphics();},0);},{signal});
+async function restoreGraphics() { const epoch=++graphicsEpoch; try { scene?.dispose(); const restored=new NusumidaseScene(canvas,overlay); scene=restored; restored.render(state,true); await restored.prepare(); if(disposed||epoch!==graphicsEpoch||scene!==restored)return; contextLost=false; ready=true; el<HTMLButtonElement>('start').disabled=false;el('start').textContent='出撃する';el('startup-error').hidden=true;el('reload').hidden=true;el('pause-reload').hidden=true;el('resume').hidden=false; el('pause-reason').textContent='描画が復帰しました。飛行を再開できます'; }catch(error){if(disposed||epoch!==graphicsEpoch)return;console.error(error);if(screen==='home'){el('startup-error').hidden=false;el('startup-error').textContent='描画を復旧できません。再読み込みしてください';el('reload').hidden=false;}el('pause-reason').textContent='描画を復旧できません。再読み込みしてください';el('pause-reload').hidden=false;} }
 for(const id of ['reload','pause-reload'])el(id).addEventListener('click',()=>location.reload(),{signal});
 function flagText(team: Team) { const flag=state.flags[team]; return flag.state==='atHome'?'基地に待機':flag.state==='dropped'?`落下 ${Math.ceil((flag.returnDuePlayTick-state.playTicks)/60)}秒`:team==='friendly'?'敵機が携行':'味方が携行'; }
 function updateHUD() {
