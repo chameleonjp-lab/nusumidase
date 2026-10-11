@@ -11,7 +11,7 @@ import { AIM_COLORS, aimIndicator, aimRadius } from './aim-indicator';
 import { BASE_POSITIONS, slotKey } from './arena';
 import { seaVertex, seaFragment, skyVertex, skyFragment } from './atmosphere';
 import { FlagView, TEAM_COLORS } from './flag-view';
-import { getFlagPosition } from './flags';
+import { carriedFlagFor, getFlagPosition } from './flags';
 import { targetAimPoint } from './flight-assist';
 import { FLIGHT_FOV, FLIGHT_VISIBILITY_RANGE, getFlightCameraPose } from './flight-view';
 import { projectGunSight } from './gun-sight';
@@ -370,10 +370,14 @@ export class NusumidaseScene {
     // Public information uses two compact side rows, leaving the inherited
     // centre sight and airframe clear. The world anchor and leader retain the
     // same camera projection even when the description sits in a side row.
+    // The carrier HUD already describes the home base. Reuse that side row
+    // for the public stolen home core instead of writing over the HUD reason.
+    const carrying = !!carriedFlagFor(state, state.player);
+    if (carrying && team === 'friendly' && !core) { c.restore(); return; }
     const portrait = h > w;
     const labelY = portrait ? Math.min(h - 170, Math.max(252, h * .31)) : Math.min(h - 130, Math.max(190, h * .51));
     const textX = team === 'friendly' ? Math.min(86, w * .23) : w - Math.min(86, w * .23);
-    const textY = labelY + (core ? 42 : 0);
+    const textY = labelY + (core && !carrying ? 42 : 0);
     const edgeX = textX + (x > textX ? 46 : -46), edgeY = textY + 5;
     c.save(); c.globalAlpha = .25; c.lineWidth = .75;
     c.beginPath(); c.moveTo(x, y - 9); c.lineTo(edgeX, edgeY); c.lineTo(textX, edgeY); c.stroke(); c.restore();
