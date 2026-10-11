@@ -15,6 +15,7 @@ import { isAlive, isProtected } from './respawn';
 import type { GameMode, GameState, GameEvent, Team } from './types';
 
 function el<T extends HTMLElement = HTMLElement>(id: string): T { const node = document.getElementById(id); if (!node) throw new Error(`Missing UI: ${id}`); return node as T; }
+function setStatusText(id: string, text: string) { const node=el(id); if(node.textContent!==text)node.textContent=text; }
 const app = el('app'), canvas = el<HTMLCanvasElement>('flight'), overlay = el<HTMLCanvasElement>('markers');
 const abort = new AbortController(), signal = abort.signal;
 let selectedMode: GameMode = 'easy', state = createGame(undefined, selectedMode);
@@ -90,21 +91,28 @@ function updateHUD() {
   const carried=carriedFlagFor(state,p), own=state.flags.friendly;el('carrier-status').hidden=!carried;
   if(carried){const base=BASE_POSITIONS.friendly;el('carrier-status').textContent=`敵コア携行中\n${own.state!=='atHome'?'自軍コアの奪還が必要\n':''}自基地 ${Math.round(p.position.distanceTo(base))}m · 高度差 ${Math.round(base.y-p.position.y)}m`;}
   let status=''; if(state.phase==='countdown'||state.phase==='roundReset')status=`${state.phase==='roundReset'?'次のラウンド':'出撃'}\n${Math.ceil((180-state.phaseTicks)/60)}`; else if(!isAlive(p))status=`撃墜 · 復活まで ${Math.max(0,Math.ceil(((p.respawnDuePlayTick??state.playTicks)-state.playTicks)/60))}秒`;else if(isProtected(state,p))status=`復活保護 ${Math.ceil((p.protectionUntilPlayTick-state.playTicks)/60)}秒`;
-  el('lifecycle-status').hidden=!status;el('lifecycle-status').textContent=status;
-  const low=p.position.y<LOW_ALTITUDE_WARNING; const edge=boundaryWarning(p.position);el('warning').hidden=!isAlive(p)||(!low&&!edge);el('warning').textContent=low?'低空注意 · 機首を上げて':'空域の境界に接近 · 内側へ旋回';
+  el('lifecycle-status').hidden=!status;setStatusText('lifecycle-status',status);
+  const waiting=state.allies.filter(plane=>!isAlive(plane)&&plane.respawnDuePlayTick!==null);
+  setStatusText('ally-announcements',waiting.length?`僚機${waiting.length}機が復活待ち · 最短${Math.max(0,Math.ceil((Math.min(...waiting.map(plane=>plane.respawnDuePlayTick!))-state.playTicks)/60))}秒`:'');
+  const low=p.position.y<LOW_ALTITUDE_WARNING; const edge=boundaryWarning(p.position);el('warning').hidden=!isAlive(p)||(!low&&!edge);setStatusText('warning',low?'低空注意 · 機首を上げて':'空域の境界に接近 · 内側へ旋回');
   if(notificationUntilTick && state.tick>=notificationUntilTick){el('announcement').textContent='';notificationUntilTick=0;}
 }
 function processEvents(events: readonly Readonly<GameEvent>[]) {
   scene?.events(events,state.elapsed);
+  const messages: {text:string;priority:number;ticks:number}[]=[];
+  const notice=(text:string,priority:number,ticks=150)=>messages.push({text,priority,ticks});
   for(const event of events){ audio.event(event,event.owner===state.player.id||event.target===state.player.id,event.type==='kill'&&event.target===state.player.id);
     const side=event.team==='friendly'?'自軍':'敵軍';
-    if(event.type==='capture')announce(`${side}がコアを回収`,180);
-    else if(event.type==='pickup')announce(`${event.owner===state.player.id?'敵コアを取得':side+'がコアを取得'}`,150);
-    else if(event.type==='return')announce(`${event.flagId==='core-A'?'自軍':'敵軍'}コアが${event.detail==='automatic'?'自動帰還':'帰還'}`,150);
-    else if(event.type==='drop')announce('携行機が撃墜 · コアが落下',150);
-    else if(event.type==='respawn'&&event.owner===state.player.id)announce('復活 · 2秒間の保護',120);
-    else if(event.type==='warning')announce(event.detail??'コア奪還を優先',180);
+    if(event.type==='capture')notice(`${side}がコアを回収`,6,180);
+    else if(event.type==='pickup')notice(`${event.owner===state.player.id?'敵コアを取得':side+'がコアを取得'}`,3);
+    else if(event.type==='return')notice(`${event.flagId==='core-A'?'自軍':'敵軍'}コアが${event.detail==='automatic'?'自動帰還':'帰還'}`,4);
+    else if(event.type==='drop')notice('携行機が撃墜 · コアが落下',5);
+    else if(event.type==='respawn'&&event.owner===state.player.id)notice('復活 · 2秒間の保護',2,120);
+    else if(event.type==='warning')notice(event.detail??'コア奪還を優先',1,180);
   }
+  messages.sort((a,b)=>b.priority-a.priority);
+  const unique=messages.filter((message,index)=>messages.findIndex(other=>other.text===message.text)===index).slice(0,3);
+  if(unique.length)announce(unique.map(message=>message.text).join(' · '),Math.max(...unique.map(message=>message.ticks)));
 }
 function complete() {
   const result=state.result; if(!result||lastResultId===result.matchId)return;lastResultId=result.matchId;clearInput();

@@ -358,6 +358,38 @@ test('capture after round reset/finish bypasses muted engine master, decays, and
   } finally { audio.dispose(); restore(); }
 });
 
+test('remaining-60-second and stagnation warning cues work with stopped engine and obey dedupe/mute', async () => {
+  const { audio, context, restore } = await createFixture();
+  try {
+    audio.active = false; audio.sync();
+    const warning = { ...gameEvent(39600, 'warning', 0), tick: 39600, detail: '残り60秒' };
+    const oscillatorsBefore = context.oscillators.length;
+    const gainsBefore = context.gains.length;
+    audio.event(warning, false);
+    assert.equal(audio.activeEffectSourceCount, 1);
+    assert.equal(context.oscillators.length, oscillatorsBefore + 1, 'warning does not restart the engine during a respawn wait');
+    const tone = context.oscillators.at(-1)!;
+    const output = context.gains[gainsBefore];
+    assert.equal(tone.frequency.value, 440);
+    assert.ok(tone.frequency.events.some(event => event.type === 'exponential' && event.value === 880));
+    assert.equal(output.gain.value, 0.6);
+    assert.deepEqual(output.connections, [context.destination]);
+    audio.event(warning, false);
+    assert.equal(audio.activeEffectSourceCount, 1, 'same remaining-time event cannot play twice');
+    context.advance(0.26);
+    assert.equal(audio.activeEffectSourceCount, 0);
+    assert.equal(audio.activeEffectVoiceCount, 0);
+    assert.equal(output.disconnectCount, 1);
+    audio.event({ ...gameEvent(40500, 'warning', 0), detail: 'コア奪還を優先' }, false);
+    assert.equal(audio.activeEffectSourceCount, 1, '90-second stagnation reminder uses the same bounded cue');
+    audio.enabled = false; audio.sync();
+    const afterMute = context.oscillators.length;
+    audio.event({ ...gameEvent(43200, 'warning', 0), detail: '残り60秒' }, false);
+    assert.equal(audio.activeEffectSourceCount, 0);
+    assert.equal(context.oscillators.length, afterMute);
+  } finally { audio.dispose(); restore(); }
+});
+
 test('finish allows death tail while reset/dispose cancel even scheduled future debris', async () => {
   const { audio, context, restore } = await createFixture();
   try {

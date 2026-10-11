@@ -228,6 +228,8 @@ export class NusumidaseScene {
       const life = event.type === 'kill' ? 2.4 : event.type === 'splash' ? 1.1 : .7;
       if (time - born >= life) continue;
       const count = event.type === 'kill' ? 18 : event.type === 'splash' ? 4 : 3;
+      const overflow = this.particles.length + count - EFFECT_CAPACITY;
+      if (overflow > 0) this.particles.splice(0, overflow);
       for (let index = 0; index < count; index++) {
         // Visual randomness is a deterministic event hash and never touches
         // simulation state or its random stream.

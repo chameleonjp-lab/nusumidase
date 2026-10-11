@@ -78,7 +78,7 @@ const SOUND_EFFECTS = new Set<GameEvent['type']>([
   'hit',
   'kill',
   'damage',
-  'loop', 'pickup', 'return', 'capture', 'respawn', 'drop',
+  'loop', 'pickup', 'return', 'capture', 'respawn', 'drop', 'warning',
 ]);
 
 /** Audio reads world facts only; it never consumes simulation randomness or changes entities. */
@@ -242,7 +242,7 @@ export class FlightAudio {
 
     const type: EffectType = event.type === 'kill' && playerDeath
       ? 'playerExplosion'
-      : ['pickup','return','capture','respawn','drop'].includes(event.type) ? 'objective' : event.type as EffectType;
+      : ['pickup','return','capture','respawn','drop','warning'].includes(event.type) ? 'objective' : event.type as EffectType;
     const ctx = this.ctx;
     if (!this.enabled || (!this.active && type !== 'objective' && type !== 'playerExplosion') || !ctx || ctx.state !== 'running' || !this.master) return;
 

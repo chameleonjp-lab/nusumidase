@@ -223,3 +223,28 @@ test('product frame adapter holds short edges through zero steps, caps catch-up 
   await expect(page.locator('#pause-reason')).toContainText('描画が遅れた');
   expect(errors).toEqual([]);
 });
+
+test('ally respawn and live warnings update on change; simultaneous capture precedes the final-minute notice', async ({ page }) => {
+  const errors = await openReview(page);
+  await startFlight(page);
+  await page.evaluate(async () => {
+    const h=(window as any).__nusumidase, state=h.state;
+    const { aircraftRef }=await import('/src/respawn.ts');
+    h.queueDamage({matchId:state.matchId,roundEpoch:state.roundEpoch,tick:state.tick+1,eventSeq:99991,
+      target:aircraftRef(state,state.allies[0]),amount:100,cause:'sea'});
+    h.step();state.player.position.y=50;h.render();
+  });
+  await expect(page.locator('#ally-announcements')).toHaveText('僚機1機が復活待ち · 最短8秒');
+  await expect(page.locator('#warning')).toContainText('低空注意');
+  const mutations=await page.evaluate(() => {
+    const observer=new MutationObserver(()=>{});
+    for(const id of ['warning','lifecycle-status','ally-announcements'])observer.observe(document.getElementById(id)!,{childList:true,subtree:true,characterData:true});
+    for(let i=0;i<10;i++)(window as any).__nusumidase.render();
+    const count=observer.takeRecords().length;observer.disconnect();return count;
+  });
+  expect(mutations).toBe(0);
+  await page.evaluate(() => { const h=(window as any).__nusumidase;h.state.playTicks=39599; });
+  await capture(page);
+  await expect(page.locator('#announcement')).toHaveText('自軍がコアを回収 · 残り60秒');
+  expect(errors).toEqual([]);
+});
