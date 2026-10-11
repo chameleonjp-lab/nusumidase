@@ -1,0 +1,333 @@
+
+> nusumidase@0.1.0 test:browser
+> playwright test
+
+
+Running 40 tests using 1 worker
+
+(node:16830) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium] › browser-tests/game.spec.ts:49:1 › home → countdown → flight → pause/settings discard → resume → capture → result → retry (13.9s)
+  ✓   2 [chromium] › browser-tests/game.spec.ts:99:1 › blur/pagehide pause all clocks, guide Escape preserves pause and returns focus (12.5s)
+  ✓   3 [chromium] › browser-tests/game.spec.ts:119:1 › time tie produces one frozen result and one completed record despite repeated callbacks (21.4s)
+  ✓   4 [chromium] › browser-tests/game.spec.ts:156:1 › twenty retry results remain bounded, terminal identities survive reload and unfinished matches are not saved (32.4s)
+  ✓   5 [chromium] › browser-tests/game.spec.ts:189:1 › three-point capture on the final tick wins before time adjudication (12.4s)
+  ✓   6 [chromium] › browser-tests/game.spec.ts:206:1 › product frame adapter holds short edges through zero steps, caps catch-up and pauses backlog (15.7s)
+  ✓   7 [chromium] › browser-tests/input-settings.spec.ts:20:1 › short key input survives sampling without steps, then changes target once across catch-up ticks (16.4s)
+  ✓   8 [chromium] › browser-tests/input-settings.spec.ts:45:1 › Easy ignores manual throttle and fire, retains six key actions and one touch control (15.2s)
+  ✓   9 [chromium] › browser-tests/input-settings.spec.ts:56:1 › focused slider combines pointer + focused positive - brake once and clears only focused keys (13.8s)
+  ✓  10 [chromium] › browser-tests/input-settings.spec.ts:72:3 › live/preview lever uses the same safe rectangle at 320x568, including 200% text (12.9s)
+  ✓  11 [chromium] › browser-tests/input-settings.spec.ts:72:3 › live/preview lever uses the same safe rectangle at 393x852, including 200% text (13.9s)
+  ✘  12 [chromium] › browser-tests/input-settings.spec.ts:72:3 › live/preview lever uses the same safe rectangle at 568x320, including 200% text (5.2s)
+(node:17762) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  13 [chromium] › browser-tests/input-settings.spec.ts:72:3 › live/preview lever uses the same safe rectangle at 852x393, including 200% text (12.4s)
+  ✘  14 [chromium] › browser-tests/input-settings.spec.ts:97:1 › settings Cancel writes zero, Save commits all owned values, future raw stays intact with explicit session use (34.4s)
+(node:17963) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  15 [chromium] › browser-tests/scene.spec.ts:23:1 › source camera and ten renderer slots stay stable through twenty retries (20.6s)
+  ✓  16 [chromium] › browser-tests/scene.spec.ts:45:1 › death freezes the camera and respawn resets it to the source pose (14.5s)
+  ✓  17 [chromium] › browser-tests/scene.spec.ts:75:1 › a carried core is one separate child visual and drops without resource growth (14.8s)
+  ✓  18 [chromium] › browser-tests/scene.spec.ts:99:1 › render effects are bounded, expire at five seconds and clear on retry (14.6s)
+  ✘  19 [chromium] › browser-tests/scene.spec.ts:125:1 › context loss pauses all clocks and restored graphics requires explicit resume (1.0m)
+(node:18317) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  20 [chromium] › browser-tests/scene.spec.ts:145:1 › accelerated twelve effective minute renderer soak keeps resources bounded (33.7s)
+(node:18520) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  21 [webkit] › browser-tests/game.spec.ts:49:1 › home → countdown → flight → pause/settings discard → resume → capture → result → retry (9.1s)
+  ✓  22 [webkit] › browser-tests/game.spec.ts:99:1 › blur/pagehide pause all clocks, guide Escape preserves pause and returns focus (7.6s)
+  ✓  23 [webkit] › browser-tests/game.spec.ts:119:1 › time tie produces one frozen result and one completed record despite repeated callbacks (6.1s)
+  ✓  24 [webkit] › browser-tests/game.spec.ts:156:1 › twenty retry results remain bounded, terminal identities survive reload and unfinished matches are not saved (13.4s)
+  ✓  25 [webkit] › browser-tests/game.spec.ts:189:1 › three-point capture on the final tick wins before time adjudication (4.2s)
+  ✓  26 [webkit] › browser-tests/game.spec.ts:206:1 › product frame adapter holds short edges through zero steps, caps catch-up and pauses backlog (4.9s)
+  ✓  27 [webkit] › browser-tests/input-settings.spec.ts:20:1 › short key input survives sampling without steps, then changes target once across catch-up ticks (5.5s)
+  ✓  28 [webkit] › browser-tests/input-settings.spec.ts:45:1 › Easy ignores manual throttle and fire, retains six key actions and one touch control (5.0s)
+  ✓  29 [webkit] › browser-tests/input-settings.spec.ts:56:1 › focused slider combines pointer + focused positive - brake once and clears only focused keys (5.1s)
+  ✓  30 [webkit] › browser-tests/input-settings.spec.ts:72:3 › live/preview lever uses the same safe rectangle at 320x568, including 200% text (8.2s)
+  ✓  31 [webkit] › browser-tests/input-settings.spec.ts:72:3 › live/preview lever uses the same safe rectangle at 393x852, including 200% text (8.4s)
+  ✘  32 [webkit] › browser-tests/input-settings.spec.ts:72:3 › live/preview lever uses the same safe rectangle at 568x320, including 200% text (4.7s)
+(node:19331) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  33 [webkit] › browser-tests/input-settings.spec.ts:72:3 › live/preview lever uses the same safe rectangle at 852x393, including 200% text (6.9s)
+  ✘  34 [webkit] › browser-tests/input-settings.spec.ts:97:1 › settings Cancel writes zero, Save commits all owned values, future raw stays intact with explicit session use (13.2s)
+(node:19480) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  35 [webkit] › browser-tests/scene.spec.ts:23:1 › source camera and ten renderer slots stay stable through twenty retries (10.6s)
+  ✓  36 [webkit] › browser-tests/scene.spec.ts:45:1 › death freezes the camera and respawn resets it to the source pose (6.0s)
+  ✓  37 [webkit] › browser-tests/scene.spec.ts:75:1 › a carried core is one separate child visual and drops without resource growth (6.2s)
+  ✓  38 [webkit] › browser-tests/scene.spec.ts:99:1 › render effects are bounded, expire at five seconds and clear on retry (6.8s)
+  ✓  39 [webkit] › browser-tests/scene.spec.ts:125:1 › context loss pauses all clocks and restored graphics requires explicit resume (7.5s)
+  ✘  40 [webkit] › browser-tests/scene.spec.ts:145:1 › accelerated twelve effective minute renderer soak keeps resources bounded (22.5s)
+
+
+  1) [chromium] › browser-tests/input-settings.spec.ts:72:3 › live/preview lever uses the same safe rectangle at 568x320, including 200% text
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 102.375
+    Received: 102.390625
+
+    Expected precision:    2
+    Expected difference: < 0.005
+    Received difference:   0.015625
+
+      73 |     await page.setViewportSize(viewport); await setup(page); await touchPresentation(page);
+      74 |     const live=await page.locator('#throttle').boundingBox(); expect(live).not.toBeNull();
+    > 75 |     expect(live!.width).toBeGreaterThanOrEqual(44); expect(live!.height).toBeCloseTo(live!.width*2,2);
+         |                                                                          ^
+      76 |     expect(live!.x).toBeGreaterThanOrEqual(0); expect(live!.y).toBeGreaterThanOrEqual(0);
+      77 |     expect(live!.x+live!.width).toBeLessThanOrEqual(viewport.width); expect(live!.y+live!.height).toBeLessThanOrEqual(viewport.height);
+      78 |     const peers=await page.locator('#fire, #loop, #pause, #game-sound').evaluateAll(elements => elements.map(el => {const r=el.getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height};}));
+        at /workspace/nusumidase/browser-tests/input-settings.spec.ts:75:74
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/input-settings-live-previe-b1d38--568x320-including-200-text-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/input-settings-live-previe-b1d38--568x320-including-200-text-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/input-settings-live-previe-b1d38--568x320-including-200-text-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/input-settings-live-previe-b1d38--568x320-including-200-text-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › browser-tests/input-settings.spec.ts:97:1 › settings Cancel writes zero, Save commits all owned values, future raw stays intact with explicit session use
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('#control-storage-note')
+    Expected substring: "未知"
+    Received string:    "保存の復元未完了です。元の設定で続行します。「今回だけ使う」で、ページを閉じるまで適用します。"
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for locator('#control-storage-note')
+        - locator resolved to <p role="status" id="control-storage-note" class="settings-storage-note">保存の復元未完了です。元の設定で続行します。</p>
+        - unexpected value "保存の復元未完了です。元の設定で続行します。"
+        13 × locator resolved to <p role="status" id="control-storage-note" class="settings-storage-note">保存の復元未完了です。元の設定で続行します。「今回だけ使う」で、ページを閉じるまで適用します。</p>
+           - unexpected value "保存の復元未完了です。元の設定で続行します。「今回だけ使う」で、ページを閉じるまで適用します。"
+
+
+      109 |   await page.reload();await expect(page.locator('#start')).toBeEnabled({timeout:60000});
+      110 |   await page.locator('#home-controls').click();await page.locator('#control-save').click();
+    > 111 |   await expect(page.locator('#control-settings')).toBeVisible();await expect(page.locator('#control-storage-note')).toContainText('未知');
+          |                                                                                                                     ^
+      112 |   await expect(page.locator('#control-save')).toHaveText('今回だけ使う');await page.locator('#control-save').click();
+      113 |   await expect(page.locator('#control-settings')).not.toBeVisible();
+      114 |   expect(await page.evaluate(()=>localStorage.getItem('nusumidase-controls-v2'))).toBe(future);
+        at /workspace/nusumidase/browser-tests/input-settings.spec.ts:111:117
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/input-settings-settings-Ca-c7dc3-t-with-explicit-session-use-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/input-settings-settings-Ca-c7dc3-t-with-explicit-session-use-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/input-settings-settings-Ca-c7dc3-t-with-explicit-session-use-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/input-settings-settings-Ca-c7dc3-t-with-explicit-session-use-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › browser-tests/scene.spec.ts:125:1 › context loss pauses all clocks and restored graphics requires explicit resume
+
+    Test timeout of 60000ms exceeded.
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator:  locator('#resume')
+    Expected: visible
+    Received: hidden
+
+    Call log:
+      - Expect "toBeVisible" with timeout 60000ms
+      - waiting for locator('#resume')
+        97 × locator resolved to <button hidden="" id="resume" class="primary">飛行を再開</button>
+           - unexpected value "hidden"
+
+
+      136 |   expect(await page.evaluate(() => (window as any).__nusumidase.state.tick)).toBe(clock);
+      137 |   await page.evaluate(() => (window as any).__lostGraphics.restoreContext());
+    > 138 |   await expect(page.locator('#resume')).toBeVisible({ timeout: 60000 });
+          |                                         ^
+      139 |   await page.waitForFunction(() => (window as any).__nusumidase.scene !== (window as any).__sceneBeforeLoss, undefined, { timeout: 60000 });
+      140 |   expect(await page.evaluate(() => (window as any).__nusumidase.state.phase)).toBe('paused');
+      141 |   await page.locator('#resume').click();
+        at /workspace/nusumidase/browser-tests/scene.spec.ts:138:41
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/scene-context-loss-pauses--5c837-cs-requires-explicit-resume-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/scene-context-loss-pauses--5c837-cs-requires-explicit-resume-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/scene-context-loss-pauses--5c837-cs-requires-explicit-resume-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/scene-context-loss-pauses--5c837-cs-requires-explicit-resume-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › browser-tests/scene.spec.ts:145:1 › accelerated twelve effective minute renderer soak keeps resources bounded
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 40
+    Received: 41
+
+      212 |     expect(snapshot.bullets).toBeLessThanOrEqual(1024); expect(snapshot.particles).toBeLessThanOrEqual(240);
+      213 |     expect(snapshot.wrecks).toBeLessThanOrEqual(10); expect(snapshot.audioSources).toBeLessThanOrEqual(10);
+    > 214 |     expect(snapshot.geometries).toBe(initial.geometries); expect(snapshot.textures).toBe(initial.textures);
+          |                                 ^
+      215 |     expect(snapshot.queue.failure).toBeNull();
+      216 |   }
+      217 |   expect(terminal.phase, terminal.pauseReason ?? undefined).toBe('ended');
+        at /workspace/nusumidase/browser-tests/scene.spec.ts:214:33
+
+    attachment #1: accelerated-renderer-soak (application/json) ────────────────────────────────────
+    test-results/scene-accelerated-twelve-e-96949-oak-keeps-resources-bounded-chromium/attachments/accelerated-renderer-soak-4a9cb86ede4819e5ebdaa8debea9c68f9986b7a4.json
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/scene-accelerated-twelve-e-96949-oak-keeps-resources-bounded-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/scene-accelerated-twelve-e-96949-oak-keeps-resources-bounded-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/scene-accelerated-twelve-e-96949-oak-keeps-resources-bounded-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/scene-accelerated-twelve-e-96949-oak-keeps-resources-bounded-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [webkit] › browser-tests/input-settings.spec.ts:72:3 › live/preview lever uses the same safe rectangle at 568x320, including 200% text
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 102.375
+    Received: 102.390625
+
+    Expected precision:    2
+    Expected difference: < 0.005
+    Received difference:   0.015625
+
+      73 |     await page.setViewportSize(viewport); await setup(page); await touchPresentation(page);
+      74 |     const live=await page.locator('#throttle').boundingBox(); expect(live).not.toBeNull();
+    > 75 |     expect(live!.width).toBeGreaterThanOrEqual(44);
+         |                                                    ^
+      76 |     // Browser layout quantizes each CSS dimension independently to 1/64px.
+      77 |     expect(Math.abs(live!.height - live!.width * 2)).toBeLessThanOrEqual(1 / 32);
+      78 |     expect(live!.x).toBeGreaterThanOrEqual(0); expect(live!.y).toBeGreaterThanOrEqual(0);
+        at /workspace/nusumidase/browser-tests/input-settings.spec.ts:75:74
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/input-settings-live-previe-b1d38--568x320-including-200-text-webkit/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/input-settings-live-previe-b1d38--568x320-including-200-text-webkit/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/input-settings-live-previe-b1d38--568x320-including-200-text-webkit/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/input-settings-live-previe-b1d38--568x320-including-200-text-webkit/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) [webkit] › browser-tests/input-settings.spec.ts:97:1 › settings Cancel writes zero, Save commits all owned values, future raw stays intact with explicit session use
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('#control-storage-note')
+    Expected substring: "未知"
+    Received string:    "保存の復元未完了です。元の設定で続行します。「今回だけ使う」で、ページを閉じるまで適用します。"
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for locator('#control-storage-note')
+        14 × locator resolved to <p role="status" id="control-storage-note" class="settings-storage-note">保存の復元未完了です。元の設定で続行します。「今回だけ使う」で、ページを閉じるまで適用します。</p>
+           - unexpected value "保存の復元未完了です。元の設定で続行します。「今回だけ使う」で、ページを閉じるまで適用します。"
+
+
+      109 |   const future='{"version":99,"controls":{"private":"preserve"}}';
+      110 |   await page.evaluate(raw=>localStorage.setItem('nusumidase-controls-v2',raw),future);
+    > 111 |   const preservedSnapshot = await page.evaluate(() => Object.fromEntries(Object.keys(localStorage).sort().map(key => [key, localStorage.getItem(key)])));
+          |                                                                                                                     ^
+      112 |   await page.reload();await expect(page.locator('#start')).toBeEnabled({timeout:60000});
+      113 |   await page.locator('#home-controls').click();await page.locator('#control-save').click();
+      114 |   await expect(page.locator('#control-settings')).toBeVisible();await expect(page.locator('#control-storage-note')).toContainText(/未知|復元未完了/);
+        at /workspace/nusumidase/browser-tests/input-settings.spec.ts:111:117
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/input-settings-settings-Ca-c7dc3-t-with-explicit-session-use-webkit/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/input-settings-settings-Ca-c7dc3-t-with-explicit-session-use-webkit/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/input-settings-settings-Ca-c7dc3-t-with-explicit-session-use-webkit/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/input-settings-settings-Ca-c7dc3-t-with-explicit-session-use-webkit/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  7) [webkit] › browser-tests/scene.spec.ts:145:1 › accelerated twelve effective minute renderer soak keeps resources bounded
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 40
+    Received: 41
+
+      212 |     expect(snapshot.bullets).toBeLessThanOrEqual(1024); expect(snapshot.particles).toBeLessThanOrEqual(240);
+      213 |     expect(snapshot.wrecks).toBeLessThanOrEqual(10); expect(snapshot.audioSources).toBeLessThanOrEqual(10);
+    > 214 |     expect(snapshot.geometries).toBe(initial.geometries); expect(snapshot.textures).toBe(initial.textures);
+          |                                 ^
+      215 |     expect(snapshot.queue.failure).toBeNull();
+      216 |   }
+      217 |   expect(terminal.phase, terminal.pauseReason ?? undefined).toBe('ended');
+        at /workspace/nusumidase/browser-tests/scene.spec.ts:214:33
+
+    attachment #1: accelerated-renderer-soak (application/json) ────────────────────────────────────
+    test-results/scene-accelerated-twelve-e-96949-oak-keeps-resources-bounded-webkit/attachments/accelerated-renderer-soak-b98d46d09a24a3fd36c922151cd6da3c506382a5.json
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/scene-accelerated-twelve-e-96949-oak-keeps-resources-bounded-webkit/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/scene-accelerated-twelve-e-96949-oak-keeps-resources-bounded-webkit/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/scene-accelerated-twelve-e-96949-oak-keeps-resources-bounded-webkit/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/scene-accelerated-twelve-e-96949-oak-keeps-resources-bounded-webkit/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  7 failed
+    [chromium] › browser-tests/input-settings.spec.ts:72:3 › live/preview lever uses the same safe rectangle at 568x320, including 200% text
+    [chromium] › browser-tests/input-settings.spec.ts:97:1 › settings Cancel writes zero, Save commits all owned values, future raw stays intact with explicit session use
+    [chromium] › browser-tests/scene.spec.ts:125:1 › context loss pauses all clocks and restored graphics requires explicit resume
+    [chromium] › browser-tests/scene.spec.ts:145:1 › accelerated twelve effective minute renderer soak keeps resources bounded
+    [webkit] › browser-tests/input-settings.spec.ts:72:3 › live/preview lever uses the same safe rectangle at 568x320, including 200% text
+    [webkit] › browser-tests/input-settings.spec.ts:97:1 › settings Cancel writes zero, Save commits all owned values, future raw stays intact with explicit session use
+    [webkit] › browser-tests/scene.spec.ts:145:1 › accelerated twelve effective minute renderer soak keeps resources bounded
+  33 passed (9.3m)
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

@@ -1,0 +1,350 @@
+{
+  "schemaVersion": 1,
+  "runtimeCommit": "f6b27b6d091279ea96782815445823c8efaa0f28",
+  "loadedTestCommit": "f6b27b6d091279ea96782815445823c8efaa0f28",
+  "stats": {
+    "startTime": "2026-10-11T03:08:37.531Z",
+    "duration": 558305.997,
+    "expected": 33,
+    "skipped": 0,
+    "unexpected": 7,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "file": "game.spec.ts",
+      "title": "home → countdown → flight → pause/settings discard → resume → capture → result → retry",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 13900,
+      "errors": []
+    },
+    {
+      "file": "game.spec.ts",
+      "title": "blur/pagehide pause all clocks, guide Escape preserves pause and returns focus",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 12480,
+      "errors": []
+    },
+    {
+      "file": "game.spec.ts",
+      "title": "time tie produces one frozen result and one completed record despite repeated callbacks",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 21416,
+      "errors": []
+    },
+    {
+      "file": "game.spec.ts",
+      "title": "twenty retry results remain bounded, terminal identities survive reload and unfinished matches are not saved",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 32447,
+      "errors": []
+    },
+    {
+      "file": "game.spec.ts",
+      "title": "three-point capture on the final tick wins before time adjudication",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 12447,
+      "errors": []
+    },
+    {
+      "file": "game.spec.ts",
+      "title": "product frame adapter holds short edges through zero steps, caps catch-up and pauses backlog",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 15746,
+      "errors": []
+    },
+    {
+      "file": "game.spec.ts",
+      "title": "home → countdown → flight → pause/settings discard → resume → capture → result → retry",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 9089,
+      "errors": []
+    },
+    {
+      "file": "game.spec.ts",
+      "title": "blur/pagehide pause all clocks, guide Escape preserves pause and returns focus",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 7556,
+      "errors": []
+    },
+    {
+      "file": "game.spec.ts",
+      "title": "time tie produces one frozen result and one completed record despite repeated callbacks",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 6075,
+      "errors": []
+    },
+    {
+      "file": "game.spec.ts",
+      "title": "twenty retry results remain bounded, terminal identities survive reload and unfinished matches are not saved",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 13433,
+      "errors": []
+    },
+    {
+      "file": "game.spec.ts",
+      "title": "three-point capture on the final tick wins before time adjudication",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 4173,
+      "errors": []
+    },
+    {
+      "file": "game.spec.ts",
+      "title": "product frame adapter holds short edges through zero steps, caps catch-up and pauses backlog",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 4929,
+      "errors": []
+    },
+    {
+      "file": "input-settings.spec.ts",
+      "title": "short key input survives sampling without steps, then changes target once across catch-up ticks",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 16420,
+      "errors": []
+    },
+    {
+      "file": "input-settings.spec.ts",
+      "title": "Easy ignores manual throttle and fire, retains six key actions and one touch control",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 15186,
+      "errors": []
+    },
+    {
+      "file": "input-settings.spec.ts",
+      "title": "focused slider combines pointer + focused positive - brake once and clears only focused keys",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 13806,
+      "errors": []
+    },
+    {
+      "file": "input-settings.spec.ts",
+      "title": "live/preview lever uses the same safe rectangle at 320x568, including 200% text",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 12869,
+      "errors": []
+    },
+    {
+      "file": "input-settings.spec.ts",
+      "title": "live/preview lever uses the same safe rectangle at 393x852, including 200% text",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 13922,
+      "errors": []
+    },
+    {
+      "file": "input-settings.spec.ts",
+      "title": "live/preview lever uses the same safe rectangle at 568x320, including 200% text",
+      "project": "chromium",
+      "status": "failed",
+      "durationMs": 5231,
+      "errors": [
+        "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeCloseTo\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m, \u001b[22mprecision\u001b[2m)\u001b[22m\n\nExpected: \u001b[32m102.375\u001b[39m\nReceived: \u001b[31m102.390625\u001b[39m\n\nExpected precision:    2\nExpected difference: < \u001b[32m0.005\u001b[39m\nReceived difference:   \u001b[31m0.015625\u001b[39m\n\n  73 |     await page.setViewportSize(viewport); await setup(page); await touchPresentation(page);\n  74 |     const live=await page.locator('#throttle').boundingBox(); expect(live).not.toBeNull();\n> 75 |     expect(live!.width).toBeGreaterThanOrEqual(44); expect(live!.height).toBeCloseTo(live!.width*2,2);\n     |                                                                          ^\n  76 |     expect(live!.x).toBeGreaterThanOrEqual(0); expect(live!.y).toBeGreaterThanOrEqual(0);\n  77 |     expect(live!.x+live!.width).toBeLessThanOrEqual(viewport.width); expect(live!.y+live!.height).toBeLessThanOrEqual(viewport.height);\n  78 |     const peers=await page.locator('#fire, #loop, #pause, #game-sound').evaluateAll(elements => elements.map(el => {const r=el.getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height};}));\n    at /workspace/nusumidase/browser-tests/input-settings.spec.ts:75:74"
+      ]
+    },
+    {
+      "file": "input-settings.spec.ts",
+      "title": "live/preview lever uses the same safe rectangle at 852x393, including 200% text",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 12380,
+      "errors": []
+    },
+    {
+      "file": "input-settings.spec.ts",
+      "title": "settings Cancel writes zero, Save commits all owned values, future raw stays intact with explicit session use",
+      "project": "chromium",
+      "status": "failed",
+      "durationMs": 34437,
+      "errors": [
+        "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('#control-storage-note')\nExpected substring: \u001b[32m\"未知\"\u001b[39m\nReceived string:    \u001b[31m\"保存の復元未完了です。元の設定で続行します。「今回だけ使う」で、ページを閉じるまで適用します。\"\u001b[39m\nTimeout: 5000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#control-storage-note')\u001b[22m\n\u001b[2m    - locator resolved to <p role=\"status\" id=\"control-storage-note\" class=\"settings-storage-note\">保存の復元未完了です。元の設定で続行します。</p>\u001b[22m\n\u001b[2m    - unexpected value \"保存の復元未完了です。元の設定で続行します。\"\u001b[22m\n\u001b[2m    13 × locator resolved to <p role=\"status\" id=\"control-storage-note\" class=\"settings-storage-note\">保存の復元未完了です。元の設定で続行します。「今回だけ使う」で、ページを閉じるまで適用します。</p>\u001b[22m\n\u001b[2m       - unexpected value \"保存の復元未完了です。元の設定で続行します。「今回だけ使う」で、ページを閉じるまで適用します。\"\u001b[22m\n\n\n  109 |   await page.reload();await expect(page.locator('#start')).toBeEnabled({timeout:60000});\n  110 |   await page.locator('#home-controls').click();await page.locator('#control-save').click();\n> 111 |   await expect(page.locator('#control-settings')).toBeVisible();await expect(page.locator('#control-storage-note')).toContainText('未知');\n      |                                                                                                                     ^\n  112 |   await expect(page.locator('#control-save')).toHaveText('今回だけ使う');await page.locator('#control-save').click();\n  113 |   await expect(page.locator('#control-settings')).not.toBeVisible();\n  114 |   expect(await page.evaluate(()=>localStorage.getItem('nusumidase-controls-v2'))).toBe(future);\n    at /workspace/nusumidase/browser-tests/input-settings.spec.ts:111:117"
+      ]
+    },
+    {
+      "file": "input-settings.spec.ts",
+      "title": "short key input survives sampling without steps, then changes target once across catch-up ticks",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 5528,
+      "errors": []
+    },
+    {
+      "file": "input-settings.spec.ts",
+      "title": "Easy ignores manual throttle and fire, retains six key actions and one touch control",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 4991,
+      "errors": []
+    },
+    {
+      "file": "input-settings.spec.ts",
+      "title": "focused slider combines pointer + focused positive - brake once and clears only focused keys",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 5130,
+      "errors": []
+    },
+    {
+      "file": "input-settings.spec.ts",
+      "title": "live/preview lever uses the same safe rectangle at 320x568, including 200% text",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 8196,
+      "errors": []
+    },
+    {
+      "file": "input-settings.spec.ts",
+      "title": "live/preview lever uses the same safe rectangle at 393x852, including 200% text",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 8380,
+      "errors": []
+    },
+    {
+      "file": "input-settings.spec.ts",
+      "title": "live/preview lever uses the same safe rectangle at 568x320, including 200% text",
+      "project": "webkit",
+      "status": "failed",
+      "durationMs": 4746,
+      "errors": [
+        "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeCloseTo\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m, \u001b[22mprecision\u001b[2m)\u001b[22m\n\nExpected: \u001b[32m102.375\u001b[39m\nReceived: \u001b[31m102.390625\u001b[39m\n\nExpected precision:    2\nExpected difference: < \u001b[32m0.005\u001b[39m\nReceived difference:   \u001b[31m0.015625\u001b[39m\n\n  73 |     await page.setViewportSize(viewport); await setup(page); await touchPresentation(page);\n  74 |     const live=await page.locator('#throttle').boundingBox(); expect(live).not.toBeNull();\n> 75 |     expect(live!.width).toBeGreaterThanOrEqual(44);\n     |                                                    ^\n  76 |     // Browser layout quantizes each CSS dimension independently to 1/64px.\n  77 |     expect(Math.abs(live!.height - live!.width * 2)).toBeLessThanOrEqual(1 / 32);\n  78 |     expect(live!.x).toBeGreaterThanOrEqual(0); expect(live!.y).toBeGreaterThanOrEqual(0);\n    at /workspace/nusumidase/browser-tests/input-settings.spec.ts:75:74"
+      ]
+    },
+    {
+      "file": "input-settings.spec.ts",
+      "title": "live/preview lever uses the same safe rectangle at 852x393, including 200% text",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 6931,
+      "errors": []
+    },
+    {
+      "file": "input-settings.spec.ts",
+      "title": "settings Cancel writes zero, Save commits all owned values, future raw stays intact with explicit session use",
+      "project": "webkit",
+      "status": "failed",
+      "durationMs": 13198,
+      "errors": [
+        "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('#control-storage-note')\nExpected substring: \u001b[32m\"未知\"\u001b[39m\nReceived string:    \u001b[31m\"保存の復元未完了です。元の設定で続行します。「今回だけ使う」で、ページを閉じるまで適用します。\"\u001b[39m\nTimeout: 5000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#control-storage-note')\u001b[22m\n\u001b[2m    14 × locator resolved to <p role=\"status\" id=\"control-storage-note\" class=\"settings-storage-note\">保存の復元未完了です。元の設定で続行します。「今回だけ使う」で、ページを閉じるまで適用します。</p>\u001b[22m\n\u001b[2m       - unexpected value \"保存の復元未完了です。元の設定で続行します。「今回だけ使う」で、ページを閉じるまで適用します。\"\u001b[22m\n\n\n  109 |   const future='{\"version\":99,\"controls\":{\"private\":\"preserve\"}}';\n  110 |   await page.evaluate(raw=>localStorage.setItem('nusumidase-controls-v2',raw),future);\n> 111 |   const preservedSnapshot = await page.evaluate(() => Object.fromEntries(Object.keys(localStorage).sort().map(key => [key, localStorage.getItem(key)])));\n      |                                                                                                                     ^\n  112 |   await page.reload();await expect(page.locator('#start')).toBeEnabled({timeout:60000});\n  113 |   await page.locator('#home-controls').click();await page.locator('#control-save').click();\n  114 |   await expect(page.locator('#control-settings')).toBeVisible();await expect(page.locator('#control-storage-note')).toContainText(/未知|復元未完了/);\n    at /workspace/nusumidase/browser-tests/input-settings.spec.ts:111:117"
+      ]
+    },
+    {
+      "file": "scene.spec.ts",
+      "title": "source camera and ten renderer slots stay stable through twenty retries",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 20555,
+      "errors": []
+    },
+    {
+      "file": "scene.spec.ts",
+      "title": "death freezes the camera and respawn resets it to the source pose",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 14513,
+      "errors": []
+    },
+    {
+      "file": "scene.spec.ts",
+      "title": "a carried core is one separate child visual and drops without resource growth",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 14759,
+      "errors": []
+    },
+    {
+      "file": "scene.spec.ts",
+      "title": "render effects are bounded, expire at five seconds and clear on retry",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 14572,
+      "errors": []
+    },
+    {
+      "file": "scene.spec.ts",
+      "title": "context loss pauses all clocks and restored graphics requires explicit resume",
+      "project": "chromium",
+      "status": "timedOut",
+      "durationMs": 60130,
+      "errors": [
+        "\u001b[31mTest timeout of 60000ms exceeded.\u001b[39m",
+        "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('#resume')\nExpected: visible\nReceived: hidden\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 60000ms\u001b[22m\n\u001b[2m  - waiting for locator('#resume')\u001b[22m\n\u001b[2m    97 × locator resolved to <button hidden=\"\" id=\"resume\" class=\"primary\">飛行を再開</button>\u001b[22m\n\u001b[2m       - unexpected value \"hidden\"\u001b[22m\n\n\n  136 |   expect(await page.evaluate(() => (window as any).__nusumidase.state.tick)).toBe(clock);\n  137 |   await page.evaluate(() => (window as any).__lostGraphics.restoreContext());\n> 138 |   await expect(page.locator('#resume')).toBeVisible({ timeout: 60000 });\n      |                                         ^\n  139 |   await page.waitForFunction(() => (window as any).__nusumidase.scene !== (window as any).__sceneBeforeLoss, undefined, { timeout: 60000 });\n  140 |   expect(await page.evaluate(() => (window as any).__nusumidase.state.phase)).toBe('paused');\n  141 |   await page.locator('#resume').click();\n    at /workspace/nusumidase/browser-tests/scene.spec.ts:138:41"
+      ]
+    },
+    {
+      "file": "scene.spec.ts",
+      "title": "accelerated twelve effective minute renderer soak keeps resources bounded",
+      "project": "chromium",
+      "status": "failed",
+      "durationMs": 33741,
+      "errors": [
+        "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m40\u001b[39m\nReceived: \u001b[31m41\u001b[39m\n\n  212 |     expect(snapshot.bullets).toBeLessThanOrEqual(1024); expect(snapshot.particles).toBeLessThanOrEqual(240);\n  213 |     expect(snapshot.wrecks).toBeLessThanOrEqual(10); expect(snapshot.audioSources).toBeLessThanOrEqual(10);\n> 214 |     expect(snapshot.geometries).toBe(initial.geometries); expect(snapshot.textures).toBe(initial.textures);\n      |                                 ^\n  215 |     expect(snapshot.queue.failure).toBeNull();\n  216 |   }\n  217 |   expect(terminal.phase, terminal.pauseReason ?? undefined).toBe('ended');\n    at /workspace/nusumidase/browser-tests/scene.spec.ts:214:33"
+      ]
+    },
+    {
+      "file": "scene.spec.ts",
+      "title": "source camera and ten renderer slots stay stable through twenty retries",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 10630,
+      "errors": []
+    },
+    {
+      "file": "scene.spec.ts",
+      "title": "death freezes the camera and respawn resets it to the source pose",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 6005,
+      "errors": []
+    },
+    {
+      "file": "scene.spec.ts",
+      "title": "a carried core is one separate child visual and drops without resource growth",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 6152,
+      "errors": []
+    },
+    {
+      "file": "scene.spec.ts",
+      "title": "render effects are bounded, expire at five seconds and clear on retry",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 6808,
+      "errors": []
+    },
+    {
+      "file": "scene.spec.ts",
+      "title": "context loss pauses all clocks and restored graphics requires explicit resume",
+      "project": "webkit",
+      "status": "passed",
+      "durationMs": 7492,
+      "errors": []
+    },
+    {
+      "file": "scene.spec.ts",
+      "title": "accelerated twelve effective minute renderer soak keeps resources bounded",
+      "project": "webkit",
+      "status": "failed",
+      "durationMs": 22482,
+      "errors": [
+        "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m40\u001b[39m\nReceived: \u001b[31m41\u001b[39m\n\n  212 |     expect(snapshot.bullets).toBeLessThanOrEqual(1024); expect(snapshot.particles).toBeLessThanOrEqual(240);\n  213 |     expect(snapshot.wrecks).toBeLessThanOrEqual(10); expect(snapshot.audioSources).toBeLessThanOrEqual(10);\n> 214 |     expect(snapshot.geometries).toBe(initial.geometries); expect(snapshot.textures).toBe(initial.textures);\n      |                                 ^\n  215 |     expect(snapshot.queue.failure).toBeNull();\n  216 |   }\n  217 |   expect(terminal.phase, terminal.pauseReason ?? undefined).toBe('ended');\n    at /workspace/nusumidase/browser-tests/scene.spec.ts:214:33"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 fill=%27%23071e2b%27/%3E%3Ctext x=%2732%27 y=%2747%27 text-anchor=%27middle%27 font-size=%2746%27 fill=%27%23e4c88b%27%3EN%3C/text%3E%3C/svg%3E" />
+    <meta name="theme-color" content="#071e2b" />
+    <meta
+      name="description"
+      content="敵コアを奪って自基地へ。ヌスミダセの操縦で挑む、5対5の空中旗取り。"
+    />
+    <title>ヌスミダセ</title>
+  </head>
+  <body>
+    <main id="app" data-screen="home" data-mode="easy">
+      <canvas id="flight" tabindex="0" aria-label="海上の航空戦闘画面"></canvas>
+      <canvas id="markers" aria-hidden="true"></canvas>
+      <div class="vignette" aria-hidden="true"></div>
+      <section id="home" class="screen home-screen" aria-labelledby="title">
+        <div class="brand-line">
+          <span class="brand-mark">N</span
+          ><span>AIR &amp; SEA / CAPTURE THE CORE</span
+          ><span class="version">CTF 01</span>
+        </div>
+        <div class="home-copy">
+          <p class="eyebrow">奪って、守って、持ち帰れ</p>
+          <h1 id="title">ヌスミダセ</h1>
+          <p class="intro">
+            敵の機密コアを、自基地へ3回。<br />僚機とともに、空を駆け抜ける。
+          </p>
+        </div>
+        <div class="briefing">
+          <div class="mission-data">
+            <div>
+              <span>味方編隊</span><strong>5<small>機</small></strong
+              ><em>自機 + 僚機4</em>
+            </div>
+            <div>
+              <span>敵航空隊</span><strong>5<small>機</small></strong
+              ><em>両陣営とも撃墜後8秒で復活</em>
+            </div>
+            <div>
+              <span>回収目標</span><strong>3<small>回</small></strong
+              ><em>12分の有効プレイ時間</em>
+            </div>
+          </div>
+          <fieldset class="mode-picker">
+            <legend>操作モード</legend>
+            <label><input type="radio" name="game-mode" value="easy" checked /><span>イージー</span></label>
+            <label><input type="radio" name="game-mode" value="normal" /><span>ノーマル</span></label>
+          </fieldset>
+          <button id="start" class="primary" disabled>
+            画面を準備しています
+          </button>
+          <p class="controls-guide"><span id="input-guide">画面をドラッグして操縦</span><br /><span id="mode-guide">照準円内へ自動射撃 · 弾道を見て少し先を狙う</span></p>
+          <p class="controls-guide">自軍コア不在では得点できません。<br />12分時は回収数で判定、同数は引分。</p><p id="best-record" class="controls-guide"></p>
+          <div class="home-actions"><button id="home-rules" class="secondary">ルールと操作方法</button><button id="home-controls" class="text-button">操作設定</button></div>
+          <p id="keyboard-guide" class="keyboard-guide" hidden></p>
+          <p id="startup-error" class="error" role="alert" hidden></p>
+          <button id="reload" class="secondary" hidden>再読み込み</button>
+        </div>
+        <footer class="home-footer">
+          <span>NUSUMIDASE / 空中旗取り</span
+          ><button id="home-sound" class="text-button" aria-pressed="false">
+            音をオンにする
+          </button>
+        </footer>
+      </section>
+      <section id="hud" aria-label="飛行中の情報" hidden>
+        <div class="hud-top">
+          <div class="time-block">
+            <span>残り時間 · <b id="hud-mode">イージー</b></span><strong id="timer">12:00</strong>
+          </div>
+          <div class="targets" aria-label="両陣営のコア回収数">
+            <div class="target-tally"><span>自軍回収</span><b id="friendly-captures">0</b><small id="friendly-flag">基地に待機</small></div>
+            <div class="hud-actions">
+              <button id="game-sound" class="icon-button sound-button" aria-label="音をオンにする" aria-pressed="false">音 OFF</button>
+              <button id="pause" class="icon-button" aria-label="一時停止">Ⅱ</button>
+            </div>
+            <div class="target-tally"><span>敵軍回収</span><b id="enemy-captures">0</b><small id="enemy-flag">基地に待機</small></div>
+          </div>
+        </div>
+        <div class="flight-data">
+          <div class="health-label">
+            機体 <b id="health">100</b><small>%</small>
+          </div>
+          <div class="health-track"><i id="health-bar"></i></div>
+          <div class="instrument">
+            <span id="altitude">300m</span><span id="speed">396km/h</span>
+          </div>
+          <div class="wingmen">僚機 <span id="allies-count">4</span> / 4</div>
+          <div class="score-readout">目標速度 <b id="target-speed">396</b> km/h</div>
+          <div class="ammo" aria-label="残弾数">機銃 <b id="mg-ammo">288</b> · 機関砲 <b id="cannon-ammo">96</b></div>
+        </div>
+        <div id="ally-announcements" class="ally-announcements" role="status" aria-live="polite" aria-atomic="true"></div>
+        <p id="carrier-status" class="carrier-status" hidden></p><p id="lifecycle-status" class="lifecycle-status" role="status" hidden></p>
+        <p id="reload-status" class="reload-status" hidden></p>
+        <p id="warning" class="warning" role="status" hidden>
+          低空注意 · 機首を上げて
+        </p>
+        <p id="throttle-layout-note" class="throttle-layout-note" role="status" hidden>速度レバーを配置できません。端末を回転するか、操作設定で調整してください。</p>
+        <p id="flight-tip" class="flight-tip">触れた位置からドラッグして操縦</p>
+        <div class="bottom-controls">
+          <button id="loop" class="loop-button">
+            <span aria-hidden="true">↻</span><b>宙返り</b
+            ><small id="loop-status">すぐ使える</small>
+          </button>
+        </div>
+        <div id="normal-controls" hidden>
+          <button id="fire" class="flight-button fire-button" aria-label="射撃（長押し）">射撃</button>
+          <div id="throttle" class="flight-button throttle-lever" role="slider" tabindex="0" aria-label="速度レバー" aria-orientation="vertical" aria-valuemin="-100" aria-valuemax="100" aria-valuenow="0" aria-valuetext="保持" aria-describedby="throttle-help"><span class="throttle-label">速度レバー</span><span class="throttle-up">加速</span><span class="throttle-handle" aria-hidden="true"></span><span class="throttle-neutral">保持</span><span class="throttle-down">減速</span></div>
+          <span id="throttle-help" class="sr-only">上で加速、下で減速。離すと中央へ戻り、調整した速度は保持します。中央は停止ではありません。</span>
+        </div>
+      </section>
+      <section
+        id="pause-screen"
+        class="screen modal-screen"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pause-title"
+        hidden
+      >
+        <div class="panel">
+          <p class="eyebrow">PAUSED</p>
+          <h2 id="pause-title">一時停止</h2>
+          <p id="pause-reason">タイムの計測も止まっています</p>
+          <button id="pause-reload" class="primary" hidden>再読み込み</button>
+          <button id="resume" class="primary">飛行を再開</button
+          ><button id="pause-restart" class="secondary">はじめから出撃</button
+          ><button id="pause-home" class="text-button">ホームへ戻る</button>
+          <button id="pause-rules" class="secondary">ルールと操作方法</button>
+          <button id="pause-controls" class="secondary">操作設定</button>
+        </div>
+      </section>
+      <section
+        id="result"
+        class="screen modal-screen"
+        aria-labelledby="result-title"
+        hidden
+      >
+        <div class="panel result-panel">
+          <p id="result-kicker" class="eyebrow">MISSION REPORT</p>
+          <h2 id="result-title">作戦終了</h2>
+          <p id="result-mode" class="mode-label">イージー</p>
+          <p id="result-reason"></p>
+          <div class="result-time">
+            <span id="result-time-label">経過時間</span
+            ><strong id="result-time">00:00.00</strong>
+          </div>
+          <p class="result-score-total">コア回収 <strong id="result-captures">0 — 0</strong></p>
+          <dl class="result-stats"><div><dt>自機の回収</dt><dd id="result-personal-captures">0回</dd></div><div><dt>自軍コアの奪還</dt><dd id="result-returns">0回</dd></div><div><dt>撃墜 / 死亡</dt><dd id="result-kills">0 / 0</dd></div></dl>
+          <p id="result-rules" class="result-note"></p><p id="record-warning" class="error" role="status" hidden></p>
+          <button id="retry" class="primary">もう一度出撃</button
+          ><button id="result-home" class="secondary">ホームへ戻る</button>
+          <button id="result-controls" class="text-button">操作設定</button>
+          <p class="result-note">記録はこの端末に保存されます</p>
+        </div>
+      </section>
+      <div
+        id="announcement"
+        class="announcement"
+        role="status"
+        aria-live="polite"
+      ></div>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
