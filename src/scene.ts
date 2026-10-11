@@ -169,11 +169,18 @@ export class NusumidaseScene {
     if (this.disposed) return;
     // The visible completion barrier includes a clean frame with live culling
     // and no priming tracers/particles before preparation is acknowledged.
-    this.renderer.render(this.scene, this.camera); this.renderQueue.submit(performance.now());
+    this.renderer.render(this.scene, this.camera);
+    const preparationStarted = performance.now();
+    this.renderQueue.submit(preparationStarted);
     while (!this.disposed) {
       const status = this.renderQueue.poll(performance.now());
       if (status === 'ready') break;
-      if (status === 'failed' || status === 'stalled') throw new Error('Initial GPU frame failed');
+      // Loading/recovery freezes simulation and may upload an entire new GPU
+      // pool. Keep the runtime's 1s stall rule, but allow this initial barrier
+      // up to 30s without submitting another frame or resetting its fence.
+      if (status === 'failed' || performance.now() - preparationStarted > 30000) {
+        throw new Error(`Initial GPU frame failed: ${JSON.stringify(this.renderQueue.diagnostics(performance.now()))}`);
+      }
       await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
     }
     if (!this.disposed) { this.prepared = true; this.renderQueue.reset(); }
