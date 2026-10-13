@@ -1,6 +1,9 @@
 {
-  "sourceCommit": "2accb1345fd38dbd17c6db5c6091c441c55ab15c",
+  "sourceCommit": "32d907e25062a3b32c1fc61760fac7abb56519f1",
+  "sourceBranch": "feat/immediate-start-persistent-core-20261013",
+  "sourceTree": "aa98ec63b8dc4b8b880a8a38931ffab76f56c71e",
+  "sourcePullRequest": 7,
   "publishedDate": "2026-10-13",
-  "rulesVersion": "nusumidase-ctf-v2",
+  "rulesVersion": "nusumidase-ctf-v3",
   "buildCommand": "npm ci && npm run build"
 }
