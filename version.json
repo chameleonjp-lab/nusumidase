@@ -1,0 +1,5 @@
+{
+  "sourceCommit": "eb213bead0f45c6578a7ee290dab96fba1fa8483",
+  "publishedDate": "2026-10-13",
+  "buildCommand": "npm ci && npm run build"
+}

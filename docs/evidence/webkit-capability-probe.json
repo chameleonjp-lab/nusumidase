@@ -1,9 +1,0 @@
-{
-  "browser": "WebKit",
-  "version": "26.5",
-  "environment": "WPE headless, local Debian libs, LIBGL_ALWAYS_SOFTWARE=1",
-  "webgl2": true,
-  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Safari/605.1.15",
-  "renderer": "WebKit WebGL",
-  "vendor": "WebKit"
-}
