@@ -11,6 +11,10 @@ GitHub Pages の公開元は `Deploy from a branch`、ブランチは `gh-pages`
 - Node.js 24.19.0 で `npm ci`、`npm test`、`npm run build` を実施。既存の104検査が成功し、型検査と公開用の作成が成功しました。
 - 公開ファイルは `index.html`、`assets/` 内の JavaScript と CSS、`.nojekyll`、`version.json` の5ファイルです。開発用ソース、検査用の操作経路、依存パッケージのフォルダは公開用ファイルに含めません。
 
+公開処理 [pages build and deployment / 38335985020](https://github.com/chameleonjp-lab/nusumidase/actions/runs/38335985020) は、上記 `gh-pages` のコミットで成功しました。公開先の HTML、JavaScript、CSS、`version.json` はすべて HTTP 200 で取得でき、作成したファイルと全バイトが一致しました。公開された `sourceCommit` も対象の `main` と一致しています。
+
+確認用クラウドブラウザーは WebGL が無効だったため、3Dの動作は公開先から取得した一致済みファイルをローカル配信し、WebGL対応の Chromium 153 で確認しました。393×852、タッチ対応の画面設定で、3Dの準備、ノーマルでの出撃、一時停止中の時計停止、再開後の時計進行、ホーム復帰が成功し、ページ内の実行エラーと読み込みエラーはありませんでした。iPhone実機やSafariでの操作感・性能を確認した結果ではありません。
+
 以前は GitHub Pages の公開元が `GitHub Actions` でしたが、公開処理が存在せず、公開実行履歴もありませんでした。初回公開では `main` の変更やPRのマージを行わず、確認済みの `main` から作成したファイルを `gh-pages` に置き、GitHub Pages の公開元を切り替えました。
 
 ## 再公開
