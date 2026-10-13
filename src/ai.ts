@@ -3,7 +3,7 @@ import { BASE_POSITIONS, otherTeam } from './arena';
 import { clamp, forwardOf } from './flight';
 import { predictedShotDirection } from './flight-assist';
 import { AI_DECISION_TICKS } from './mission';
-import { baseWaitingWaypoint, legalWaypoint, navigationInput, orbitWaypoint, planRoute, routeWaypoint } from './navigation';
+import { legalWaypoint, navigationInput, orbitWaypoint, planRoute, routeWaypoint } from './navigation';
 import type { NavigationRoute } from './navigation';
 import type { Aircraft, AIRole, Flag, FlightInput, GameState, Team } from './types';
 
@@ -64,7 +64,7 @@ function assignRoles(state: GameState, team: Team, memory: PlanningState): void 
     + available.map(plane => `${plane.slotId}.${plane.generation}`).join(',');
   const critical = signature !== memory.teams[team].signature;
   memory.teams[team].signature = signature;
-  if (carrier && carrier !== state.player) setRole(carrier, ownFlag.state === 'atHome' ? 'return' : 'wait', state.playTicks);
+  if (carrier && carrier !== state.player) setRole(carrier, 'return', state.playTicks);
   const candidates = available.filter(plane => plane !== carrier);
   const roles: AIRole[] = [];
   if (ownFlag.state !== 'atHome') roles.push(...Array<AIRole>(Math.min(2, candidates.length)).fill('recover'));
@@ -102,9 +102,7 @@ function missionTarget(state: GameState, plane: Aircraft): { point: Vector3; key
   const home = BASE_POSITIONS[plane.team], ownFlag = state.flags[plane.team], enemyFlag = state.flags[otherTeam(plane.team)];
   const carrier = carrierFor(state, enemyFlag);
   if (carrier === plane) {
-    return ownFlag.state === 'atHome'
-      ? { point: home.clone(), key: 'return', moving: false }
-      : { point: baseWaitingWaypoint(plane), key: 'wait', moving: true };
+    return { point: home.clone(), key: 'return', moving: false };
   }
   if (plane.aiRole === 'recover' && ownFlag.state !== 'atHome') {
     const thief = carrierFor(state, ownFlag), point = flagPosition(state, ownFlag);
@@ -154,8 +152,8 @@ function followMission(state: GameState, plane: Aircraft, memory: PlanningState)
       // The carrier climbs along an ordinary exit leg before turning home.
       // It remains targetable and has the same airframe and speed as escorts.
       const side = plane.slotId % 2 ? 1 : -1;
-      const exit = legalWaypoint(plane.position.clone().addScaledVector(forwardOf(plane), 500).add(new Vector3(0, 250, side * 240)));
-      const crossing = new Vector3(0, 500, side * 500);
+      const exit = legalWaypoint(plane.position.clone().addScaledVector(forwardOf(plane), 650).add(new Vector3(0, 350, side * 650)));
+      const crossing = new Vector3(0, 650, side * 1000);
       plan.route.points.unshift(exit, crossing);
     }
   }

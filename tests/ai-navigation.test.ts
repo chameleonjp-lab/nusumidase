@@ -56,13 +56,13 @@ test('roles hold 120 ticks, but theft/death triggers reassignment at the next si
   state.playTicks += 6; updateAI(state); assert.equal(survivor.aiRole, 'recover');
 });
 
-test('carrier returns or circles radius 300, while one separate aircraft escorts', () => {
+test('carrier returns even when its own core is stolen, while one separate aircraft escorts', () => {
   const state = fixture(), carrier = state.allies[0]; carried(state, 'enemy', carrier); updateAI(state);
   assert.equal(carrier.aiRole, 'return'); assert.equal(state.allies.filter(plane => plane.aiRole === 'escort').length, 1);
   assert.equal(carrier.aiWaypoint.distanceTo(BASE_POSITIONS.friendly), 0);
   carried(state, 'friendly', state.enemies[0]); state.playTicks = 6; updateAI(state);
-  assert.equal(carrier.aiRole, 'wait');
-  assert.ok(Math.abs(carrier.aiWaypoint.distanceTo(BASE_POSITIONS.friendly) - 300) < 1e-6);
+  assert.equal(carrier.aiRole, 'return');
+  assert.equal(carrier.aiWaypoint.distanceTo(BASE_POSITIONS.friendly), 0);
   assert.equal(state.allies.filter(plane => plane.aiRole === 'recover').length, 2);
 });
 

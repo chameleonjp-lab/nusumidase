@@ -43,17 +43,16 @@ test('external damage rejects malformed identity and old owner generations, and 
   for (let eventSeq = 0; eventSeq < 128; eventSeq++) assert.equal(queueDamageEvent(state, { ...event, eventSeq, amount: 1 }), true);
   assert.equal(queueDamageEvent(state, { ...event, eventSeq: 128 }), false); assert.equal(state.phase, 'paused'); assert.equal(state.recordEligible, false);
 });
-test('capture resets all ten slots, both flags, bullets and generations while preserving cumulative ticks/stats', () => {
+test('the first capture ends immediately without another round or resetting the aircraft', () => {
   const state = playing(); captureFixture(state); const generations = state.slots.map(plane => plane.generation);
   state.player.mg = 10; state.stats.kills = 3; stepFixed(state, neutral);
-  assert.equal(state.phase, 'roundReset'); assert.equal(state.roundEpoch, 1); assert.equal(state.scores.friendly, 1); assert.equal(state.playTicks, 1);
-  assert.equal(state.stats.kills, 3); assert.equal(state.stats.captures, 1); assert.equal(state.bullets.length, 0);
-  for (const [index, plane] of state.slots.entries()) { assert.equal(plane.health, 80); assert.equal(plane.generation, generations[index] + 1); assert.equal(plane.mg, 288); assert.equal(plane.respawnDuePlayTick, null); }
-  assert.equal(state.flags.enemy.state, 'atHome'); assert.equal(state.flags.friendly.state, 'atHome');
-  const positions = state.slots.map(plane => plane.position.toArray()); for (let i = 0; i < 179; i++) stepFixed(state, { ...neutral, fire: true, throttle: 1 });
-  assert.equal(state.phase, 'roundReset'); assert.equal(state.playTicks, 1); assert.deepEqual(state.slots.map(plane => plane.position.toArray()), positions);
-  stepFixed(state, { ...neutral, fire: true }); assert.equal(state.phase, 'playing'); stepFixed(state, { ...neutral, fire: true, throttle: 1 });
-  assert.equal(getPlayerTargetSpeed(state), 110); assert.equal(state.player.mg, 288); stepFixed(state, neutral); stepFixed(state, { ...neutral, throttle: 1 }); assert.ok(getPlayerTargetSpeed(state) > 110);
+  assert.equal(state.phase, 'ended'); assert.equal(state.roundEpoch, 0); assert.equal(state.scores.friendly, 1); assert.equal(state.playTicks, 1);
+  assert.equal(state.result?.outcome, 'victory'); assert.equal(state.stats.kills, 3); assert.equal(state.stats.captures, 1);
+  for (const [index, plane] of state.slots.entries()) assert.equal(plane.generation, generations[index]);
+  assert.equal(state.player.mg, 10); assert.equal(state.flags.enemy.state, 'carried');
+  const snapshot = JSON.stringify(state);
+  for (let i = 0; i < 180; i++) assert.equal(stepFixed(state, { ...neutral, fire: true, throttle: 1 }), false);
+  assert.equal(JSON.stringify(state), snapshot);
 });
 test('arrival-tick lethal combat beats capture and schedules one respawn with legal flag drop', () => {
   const state = playing(); captureFixture(state); const event = killEvent(state, state.player);
@@ -79,23 +78,63 @@ test('protected spawn cannot take bullet damage but boundary crossing remains fa
   const state = playing(); state.player.protectionUntilPlayTick = 120; queueDamageEvent(state, killEvent(state, state.player)); stepFixed(state, neutral);
   assert.equal(state.player.health, 80); state.player.position.x = -2401; stepFixed(state, neutral); assert.equal(state.player.health, 0);
 });
-test('stale match/epoch/generation events fail, and old epoch pending damage cannot affect reset slots', () => {
+test('stale match/epoch/generation events fail, and late damage cannot change a completed match', () => {
   const state = playing(), event = killEvent(state, state.player);
   for (const changed of [{ matchId: 'old' }, { roundEpoch: 9 }, { target: { ...event.target, generation: 9 } }]) assert.equal(queueDamageEvent(state, { ...event, ...changed }), false);
   captureFixture(state); stepFixed(state, neutral); for (let i = 0; i < 180; i++) stepFixed(state, neutral);
   const snapshot = JSON.stringify(state); for (let i = 0; i < 1000; i++) assert.equal(queueDamageEvent(state, event), false); assert.equal(JSON.stringify(state), snapshot);
 });
-test('three captures end once with deeply frozen result; time-boundary capture is resolved before winner', () => {
-  const state = playing(); state.scores = { friendly: 2, enemy: 2 }; state.playTicks = MATCH_PLAY_TICKS - 1; captureFixture(state); stepFixed(state, neutral);
+test('one capture ends once with deeply frozen result and takes precedence on the final time tick', () => {
+  const state = playing(); state.playTicks = MATCH_PLAY_TICKS - 1; captureFixture(state); stepFixed(state, neutral);
   assert.equal(state.phase, 'ended'); assert.equal(state.result?.outcome, 'victory'); assert.equal(state.result?.reason, 'captures'); assert.equal(state.playTicks, MATCH_PLAY_TICKS);
   assert.ok(Object.isFrozen(state.result)); assert.ok(Object.isFrozen(state.result?.stats.teamKills)); assert.ok(Object.isFrozen(state.result?.scores)); assert.ok(Object.isFrozen(state.events)); assert.ok(Object.isFrozen(state.events[0]));
   const result = state.result, snapshot = JSON.stringify(state); for (let i = 0; i < 100; i++) assert.equal(stepFixed(state, { ...neutral, fire: true }), false);
   assert.equal(state.result, result); assert.equal(JSON.stringify(state), snapshot);
 });
-test('time-boundary non-winning capture chooses score lead, and equal captures draw', () => {
-  const state = playing(); state.playTicks = MATCH_PLAY_TICKS - 1; captureFixture(state); stepFixed(state, neutral);
-  assert.equal(state.result?.outcome, 'victory'); assert.equal(state.result?.reason, 'time'); assert.equal(state.result?.scores.friendly, 1);
-  const draw = playing(); draw.playTicks = MATCH_PLAY_TICKS - 1; stepFixed(draw, neutral); assert.equal(draw.result?.outcome, 'draw');
+test('no core returned by twelve minutes is a draw', () => {
+  const draw = playing(); draw.playTicks = MATCH_PLAY_TICKS - 1; stepFixed(draw, neutral);
+  assert.equal(draw.result?.outcome, 'draw'); assert.equal(draw.result?.reason, 'time');
+  assert.deepEqual(draw.result?.captures, { friendly: 0, enemy: 0 });
+});
+test('the first return wins for either team even while its own core is absent', () => {
+  for (const team of ['friendly', 'enemy'] as const) {
+    const state = playing(), carrier = team === 'friendly' ? state.player : state.enemies[0];
+    const opponent = team === 'friendly' ? 'enemy' : 'friendly';
+    place(carrier, BASE_POSITIONS[team]);
+    state.flags[opponent] = { ...state.flags[opponent], state: 'carried', carrier: aircraftRef(state, carrier) };
+    state.flags[team] = { ...state.flags[team], state: 'dropped', position: new Vector3(0, 300, 0), droppedAtPlayTick: 0 };
+    stepFixed(state, neutral);
+    assert.equal(state.phase, 'ended'); assert.equal(state.scores[team], 1); assert.equal(state.scores[opponent], 0);
+    assert.equal(state.result?.outcome, team === 'friendly' ? 'victory' : 'defeat');
+  }
+});
+test('two returns in one tick use actual entry order regardless of candidate and aircraft array order', () => {
+  for (const firstTeam of ['friendly', 'enemy'] as const) for (const reversed of [false, true]) {
+    const state = playing(); captureFixture(state); const enemy = state.enemies[0];
+    place(enemy, BASE_POSITIONS.enemy);
+    state.flags.friendly = { ...state.flags.friendly, state: 'carried', carrier: aircraftRef(state, enemy) };
+    for (const carrier of [state.player, enemy]) {
+      const distance = carrier.team === firstTeam ? 100 : 200;
+      carrier.previous.copy(BASE_POSITIONS[carrier.team]).add(new Vector3(-distance, 0, 0));
+    }
+    if (reversed) state.slots.reverse();
+    const candidates = captureCandidates(state, flagStartSnapshot(state)); if (reversed) candidates.reverse();
+    assert.equal(applyCaptureCandidates(state, candidates), true);
+    assert.equal(state.scores[firstTeam], 1); assert.equal(state.scores[firstTeam === 'friendly' ? 'enemy' : 'friendly'], 0);
+  }
+});
+test('exactly simultaneous returns end in a draw rather than favouring a team', () => {
+  const state = playing(); captureFixture(state); place(state.enemies[0], BASE_POSITIONS.enemy);
+  state.flags.friendly = { ...state.flags.friendly, state: 'carried', carrier: aircraftRef(state, state.enemies[0]) };
+  stepFixed(state, neutral);
+  assert.equal(state.phase, 'ended'); assert.equal(state.result?.outcome, 'draw'); assert.equal(state.result?.reason, 'captures');
+  assert.deepEqual(state.result?.captures, { friendly: 1, enemy: 1 });
+});
+test('a forged sphere-entry time cannot turn a later arrival into a win', () => {
+  const state = playing(); captureFixture(state);
+  const candidates = captureCandidates(state, flagStartSnapshot(state));
+  assert.equal(applyCaptureCandidates(state, [{ ...candidates[0], entryTime: -1 }]), false);
+  assert.deepEqual(state.scores, { friendly: 0, enemy: 0 });
 });
 test('abnormal simultaneous capture candidates cause safe pause and invalidate records', () => {
   const state = playing(); captureFixture(state); const candidates = captureCandidates(state, flagStartSnapshot(state));

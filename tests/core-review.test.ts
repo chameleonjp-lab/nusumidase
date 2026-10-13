@@ -18,7 +18,7 @@ function validCapture(state: GameState) {
 test('flag invariants reject nonfinite timer and a flag assigned to the wrong home-team key', () => {
   const state = playing();
   state.flags.friendly = { ...state.flags.friendly, state: 'dropped', position: new Vector3(0, 300, 0),
-    droppedAtPlayTick: Infinity, returnDuePlayTick: Infinity };
+    droppedAtPlayTick: Infinity };
   assert.notEqual(flagInvariantError(state), null);
   const wrong = playing(); wrong.flags.friendly = { ...wrong.flags.friendly, homeTeam: 'enemy' };
   assert.notEqual(flagInvariantError(wrong), null);

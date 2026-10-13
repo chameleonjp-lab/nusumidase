@@ -4,9 +4,9 @@ import { aircraftOrder, finitePosition } from './arena';
 import { advanceAmmunition, collectBulletDamage, collectContactDamage, fireAircraft, type DamageCandidate } from './combat';
 import { autoFireTarget, getFlightAssist } from './flight-assist';
 import { advanceThrottle, createFlightController, MAX_SPEED, updateAircraftMotion, updatePlayerLoop, type FlightController } from './flight';
-import { captureCandidates, createFlags, dropCarrierFlags, flagInvariantError, flagStartSnapshot, resetFlags, resolveFlagTransitions, type CaptureCandidate, type FlagStartSnapshot, type FlagTransition } from './flags';
-import { CAPTURES_TO_WIN, COUNTDOWN_TICKS, FIXED_DT, makeSlots, MATCH_PLAY_TICKS, MAX_ACCUMULATOR, MAX_EVENTS_PER_STEP, MAX_STEPS_PER_FRAME, resolveMissionConfig, ROUND_RESET_TICKS, RULES_VERSION } from './mission';
-import { aircraftRef, cancelRespawns, isAlive, isProtected, processRespawns, resetAircraft, resolveAircraftRef, sameRef, scheduleRespawn } from './respawn';
+import { captureCandidates, createFlags, dropCarrierFlags, flagInvariantError, flagStartSnapshot, resolveFlagTransitions, type CaptureCandidate, type FlagStartSnapshot, type FlagTransition } from './flags';
+import { CAPTURES_TO_WIN, COUNTDOWN_TICKS, FIXED_DT, makeSlots, MATCH_PLAY_TICKS, MAX_ACCUMULATOR, MAX_EVENTS_PER_STEP, MAX_STEPS_PER_FRAME, resolveMissionConfig, RULES_VERSION } from './mission';
+import { aircraftRef, cancelRespawns, isAlive, isProtected, processRespawns, resolveAircraftRef, sameRef, scheduleRespawn } from './respawn';
 import type { Aircraft, DamageEvent, FlightInput, GameEvent, GameMode, GameState, MissionConfig, MissionStats, Team } from './types';
 export { FIXED_DT } from './mission';
 
@@ -98,13 +98,6 @@ function finish(state: GameState, reason: 'captures' | 'time'): void {
     captures: scores, scores, playTicks: state.playTicks, time: state.playTicks * FIXED_DT, stats, recordEligible: state.recordEligible });
   emit(state, 'end', state.player, { detail: state.result.outcome });
 }
-function resetRound(state: GameState): void {
-  state.roundEpoch++; state.phase = 'roundReset'; state.phaseTicks = 0;
-  for (const aircraft of state.slots) resetAircraft(state, aircraft);
-  resetFlags(state); state.bullets = []; state.roundScored = false;
-  const meta = metaFor(state); meta.flight = createFlightController(state.player); meta.queuedDamage = []; meta.processedEvents.clear(); meta.flagStart = undefined;
-  invalidateInputs(state); emit(state, 'round-reset', null);
-}
 function flagNotifications(state: GameState, transitions: FlagTransition[]): void {
   for (const transition of transitions) {
     emit(state, transition.type, transition.aircraft ?? null, { flagId: transition.flagId, expectedRevision: transition.expectedRevision, position: transition.position, detail: transition.detail });
@@ -154,23 +147,37 @@ function aggregateDamage(state: GameState, damage: DamageCandidate[]): void {
   }
 }
 export function applyCaptureCandidates(state: GameState, candidates: readonly CaptureCandidate[]): boolean {
-  if (candidates.length > 1) { invariantPause(state, 'multiple capture candidates'); return false; }
+  if (candidates.length > 2 || new Set(candidates.map(value => value.captureId)).size !== candidates.length
+    || new Set(candidates.map(value => value.team)).size !== candidates.length) {
+    invariantPause(state, 'duplicate or invalid capture candidates'); return false;
+  }
   if (candidates.length === 0 || state.roundScored || state.phase !== 'playing') return false;
-  const candidate = candidates[0], flag = Object.values(state.flags).find(value => value.flagId === candidate.flagId);
   const meta = metaFor(state);
-  const legal = captureCandidates(state, meta.flagStart ?? flagStartSnapshot(state)).find(value => value.captureId === candidate.captureId
-    && value.team === candidate.team && value.carrier === candidate.carrier && value.flagId === candidate.flagId && value.expectedRevision === candidate.expectedRevision);
-  if (!legal || !flag || flag.revision !== candidate.expectedRevision || flag.state !== 'carried' || candidate.team !== candidate.carrier.team
-    || flag.homeTeam === candidate.team || !sameRef(flag.carrier, aircraftRef(state, candidate.carrier))
-    || resolveAircraftRef(state, flag.carrier) !== candidate.carrier || !isAlive(candidate.carrier) || isProtected(state, candidate.carrier)
-    || state.flags[candidate.team].state !== 'atHome'
-    || !candidate.captureId.startsWith(`${state.matchId}/${state.roundEpoch}/${state.tick}/capture/`) || meta.processedEvents.has(candidate.captureId)) return false;
-  // Reserve capture and the following end/reset notification before changing score.
-  if (meta.pendingEvents.length + 2 > MAX_EVENTS_PER_STEP) { invariantPause(state, 'meaning event limit exceeded'); return false; }
-  meta.processedEvents.set(candidate.captureId, state.tick); state.roundScored = true; state.scores[candidate.team]++;
+  const legal = captureCandidates(state, meta.flagStart ?? flagStartSnapshot(state));
+  if (legal.length !== candidates.length) return false;
+  for (const candidate of candidates) {
+    const flag = Object.values(state.flags).find(value => value.flagId === candidate.flagId);
+    const current = legal.find(value => value.captureId === candidate.captureId && value.team === candidate.team
+      && value.carrier === candidate.carrier && value.flagId === candidate.flagId && value.expectedRevision === candidate.expectedRevision
+      && value.entryTime === candidate.entryTime);
+    if (!current || !flag || flag.revision !== candidate.expectedRevision || flag.state !== 'carried' || candidate.team !== candidate.carrier.team
+      || flag.homeTeam === candidate.team || !sameRef(flag.carrier, aircraftRef(state, candidate.carrier))
+      || resolveAircraftRef(state, flag.carrier) !== candidate.carrier || !isAlive(candidate.carrier) || isProtected(state, candidate.carrier)
+      || meta.processedEvents.has(candidate.captureId)) return false;
+  }
+  legal.sort((a, b) => a.entryTime - b.entryTime);
+  // Compare actual sphere-entry fractions, never the order of the two teams.
+  // Exactly equal entries are a simultaneous finish rather than an arbitrary win.
+  const winners = legal.filter(value => value.entryTime === legal[0].entryTime);
+  if (meta.pendingEvents.length + winners.length + 1 > MAX_EVENTS_PER_STEP) { invariantPause(state, 'meaning event limit exceeded'); return false; }
+  state.roundScored = true;
   state.lastCapturePlayTick = state.playTicks;
-  if (candidate.carrier === state.player) state.stats.captures = bounded(state.stats.captures);
-  emit(state, 'capture', candidate.carrier, { flagId: candidate.flagId, expectedRevision: candidate.expectedRevision, amount: state.scores[candidate.team] }); return true;
+  for (const candidate of winners) {
+    meta.processedEvents.set(candidate.captureId, state.tick); state.scores[candidate.team]++;
+    if (candidate.carrier === state.player) state.stats.captures = bounded(state.stats.captures);
+    emit(state, 'capture', candidate.carrier, { flagId: candidate.flagId, expectedRevision: candidate.expectedRevision, amount: state.scores[candidate.team] });
+  }
+  return true;
 }
 function normalizedInput(state: GameState, supplied: FlightInput): FlightInput {
   const meta = metaFor(state), axis = (value: number | undefined) => Number.isFinite(value) ? Math.max(-1, Math.min(1, value!)) : 0;
@@ -202,7 +209,7 @@ export function stateInvariantError(state: GameState): string | null {
   for (const bullet of state.bullets) if (!finitePosition(bullet.position) || !finitePosition(bullet.previous) || !finitePosition(bullet.velocity)
     || !Number.isFinite(bullet.life) || bullet.life < 0 || !Number.isFinite(bullet.damage) || bullet.damage < 0
     || !Number.isFinite(bullet.distanceTravelled) || bullet.distanceTravelled < 0 || !bullet.targetGenerations || typeof bullet.targetGenerations !== 'object') return 'Invalid bullet numeric state';
-  for (const team of ['friendly', 'enemy'] as const) if (!Number.isInteger(state.scores[team]) || state.scores[team] < 0 || state.scores[team] > 3) return 'Invalid capture count';
+  for (const team of ['friendly', 'enemy'] as const) if (!Number.isInteger(state.scores[team]) || state.scores[team] < 0 || state.scores[team] > CAPTURES_TO_WIN) return 'Invalid capture count';
   return flagInvariantError(state);
 }
 /** One authoritative tick. Never uses DOM, wall-clock, promises, or rendering state. */
@@ -210,9 +217,9 @@ export function stepFixed(state: GameState, supplied: FlightInput): boolean {
   if (state.phase === 'ready' || state.phase === 'paused' || state.phase === 'ended') return false;
   const meta = metaFor(state); meta.eventSeq = 0; meta.pendingEvents = []; meta.overflow = false;
   const input = normalizedInput(state, supplied); state.tick++;
-  if (state.phase === 'countdown' || state.phase === 'roundReset') {
+  if (state.phase === 'countdown') {
     state.phaseTicks++;
-    if (state.phaseTicks >= (state.phase === 'countdown' ? COUNTDOWN_TICKS : ROUND_RESET_TICKS)) { state.phase = 'playing'; state.phaseTicks = 0; }
+    if (state.phaseTicks >= COUNTDOWN_TICKS) { state.phase = 'playing'; state.phaseTicks = 0; }
     commitEvents(state); return true;
   }
   state.playTicks++; state.elapsed = state.playTicks * FIXED_DT;
@@ -255,14 +262,13 @@ export function stepFixed(state: GameState, supplied: FlightInput): boolean {
   if (invariant) invariantPause(state, invariant);
   else if (meta.overflow) invariantPause(state, 'meaning event limit exceeded');
   else {
-    const scored = applyCaptureCandidates(state, captureCandidates(state, start));
+    applyCaptureCandidates(state, captureCandidates(state, start));
     if (state.phase === 'playing') {
       if (state.scores.friendly >= CAPTURES_TO_WIN || state.scores.enemy >= CAPTURES_TO_WIN) finish(state, 'captures');
       else if (state.playTicks >= MATCH_PLAY_TICKS) {
         if (meta.pendingEvents.length >= MAX_EVENTS_PER_STEP) invariantPause(state, 'meaning event limit exceeded');
         else finish(state, 'time');
       }
-      else if (scored) resetRound(state);
       else if (state.playTicks - state.lastCapturePlayTick > 0 && (state.playTicks - state.lastCapturePlayTick) % 5400 === 0) emit(state, 'warning', null, { detail: 'コア奪還を優先' });
       if (state.playTicks === MATCH_PLAY_TICKS - 3600) emit(state, 'warning', null, { detail: '残り60秒' });
     }
@@ -281,7 +287,7 @@ export function stepGame(state: GameState, source: FlightInput | (() => FlightIn
     const input = typeof source === 'function' ? source() : source;
     meta.accumulator = Math.max(0, meta.accumulator - FIXED_DT);
     if (!stepFixed(state, input)) break; steps++; onStep?.(input);
-    if (!['countdown', 'playing', 'roundReset'].includes(state.phase)) break;
+    if (!['countdown', 'playing'].includes(state.phase)) break;
   }
   return steps;
 }

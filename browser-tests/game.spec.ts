@@ -78,15 +78,9 @@ test('home → countdown → flight → pause/settings discard → resume → ca
   await expect(page.locator('#pause-screen')).not.toBeVisible();
   await capture(page);
   await expect(page.locator('#friendly-captures')).toHaveText('1');
-  expect(await page.evaluate(() => (window as any).__nusumidase.state.phase)).toBe('roundReset');
-  const resetTicks = await page.evaluate(() => (window as any).__nusumidase.state.playTicks);
-  await page.evaluate(() => (window as any).__nusumidase.step(180));
-  expect(await page.evaluate(() => (window as any).__nusumidase.state.playTicks)).toBe(resetTicks);
-  await capture(page);
-  await page.evaluate(() => (window as any).__nusumidase.step(180));
-  await capture(page);
+  expect(await page.evaluate(() => (window as any).__nusumidase.state.phase)).toBe('ended');
   await expect(page.locator('#result-title')).toHaveText('勝利');
-  await expect(page.locator('#result-captures')).toHaveText('3 — 0');
+  await expect(page.locator('#result-captures')).toHaveText('1 — 0');
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('nusumidase-records-v1') ?? '{"latest":[]}').latest.length)).toBe(1);
   await page.locator('#retry').click();
   await expect(page.locator('#result')).not.toBeVisible();
@@ -131,7 +125,7 @@ test('time tie produces one frozen result and one completed record despite repea
   await expect(page.locator('#start')).toBeEnabled();
   await page.evaluate(() => (window as any).__nusumidase.manual(true));
   await startFlight(page);
-  await endAtTime(page, 2, 2);
+  await endAtTime(page, 0, 0);
   await expect(page.locator('#result-title')).toHaveText('引分');
   await expect(page.locator('#result-time')).toHaveText('12:00');
   const report = await page.evaluate(() => {
@@ -186,20 +180,56 @@ test('twenty retry results remain bounded, terminal identities survive reload an
   expect(errors).toEqual([]);
 });
 
-test('three-point capture on the final tick wins before time adjudication', async ({ page }) => {
+test('first capture on the final tick wins before time adjudication', async ({ page }) => {
   const errors = await openReview(page);
   await startFlight(page);
   await page.evaluate(async () => {
     const h = (window as any).__nusumidase;
     const { MATCH_PLAY_TICKS } = await import('/src/mission.ts');
     h.state.playTicks = MATCH_PLAY_TICKS - 1;
-    h.state.scores = { friendly: 2, enemy: 2 };
+    h.state.scores = { friendly: 0, enemy: 0 };
   });
   await capture(page);
   await expect(page.locator('#result-title')).toHaveText('勝利');
-  await expect(page.locator('#result-reason')).toHaveText('3回のコア回収で決着');
-  await expect(page.locator('#result-captures')).toHaveText('3 — 2');
+  await expect(page.locator('#result-reason')).toHaveText('先に1個のコアを持ち帰って決着');
+  await expect(page.locator('#result-captures')).toHaveText('1 — 0');
   await expect(page.locator('#result-time')).toHaveText('12:00');
+  expect(errors).toEqual([]);
+});
+
+test('the core remains at its death point past thirty seconds and one return wins with own core absent', async ({ page }) => {
+  const errors = await openReview(page);
+  await expect(page.locator('#home')).toContainText('先に1つ自基地へ');
+  await startFlight(page);
+  const deathPoint = await page.evaluate(async () => {
+    const h = (window as any).__nusumidase, state = h.state;
+    const { aircraftRef } = await import('/src/respawn.ts');
+    for (const plane of state.slots) if (plane !== state.player) plane.protectionUntilPlayTick = 10000;
+    state.player.position.set(2300, 80, 1700); state.player.previous.copy(state.player.position);
+    state.flags.enemy = { ...state.flags.enemy, state: 'carried', carrier: aircraftRef(state, state.player) };
+    h.queueDamage({ matchId: state.matchId, roundEpoch: state.roundEpoch, tick: state.tick + 1, eventSeq: 999,
+      target: aircraftRef(state, state.player), owner: aircraftRef(state, state.enemies[0]), amount: 80, cause: 'bullet' });
+    h.step();
+    return state.player.position.toArray();
+  });
+  await expect(page.locator('#enemy-flag')).toHaveText('撃破地点に留まる');
+  await page.evaluate(() => (window as any).__nusumidase.step(1801));
+  const dropped = await page.evaluate(() => {
+    const state = (window as any).__nusumidase.state;
+    return { phase: state.phase, flag: state.flags.enemy.state, corePosition: state.flags.enemy.position.toArray(),
+      planePosition: state.player.position.toArray() };
+  });
+  expect(dropped.phase).toBe('playing'); expect(dropped.flag).toBe('dropped');
+  expect(dropped.corePosition).toEqual(deathPoint); expect(dropped.planePosition).not.toEqual(deathPoint);
+  await expect(page.locator('#enemy-flag')).toHaveText('撃破地点に留まる');
+  await page.evaluate(async () => {
+    const state = (window as any).__nusumidase.state;
+    state.flags.friendly = { ...state.flags.friendly, state: 'dropped', position: state.player.position.clone().set(0, 300, 0), droppedAtPlayTick: state.playTicks };
+  });
+  await capture(page);
+  await expect(page.locator('#result-title')).toHaveText('勝利');
+  await expect(page.locator('#result-reason')).toHaveText('先に1個のコアを持ち帰って決着');
+  await expect(page.locator('#result-captures')).toHaveText('1 — 0');
   expect(errors).toEqual([]);
 });
 

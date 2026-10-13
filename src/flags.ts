@@ -1,11 +1,10 @@
 import { Vector3 } from 'three';
 import { aircraftOrder, BASE_POSITIONS, legalDropPosition, otherTeam, proximityTime } from './arena';
-import { FLAG_RETURN_TICKS } from './mission';
 import { aircraftRef, isAlive, isProtected, resolveAircraftRef, sameRef } from './respawn';
 import type { Aircraft, AircraftRef, Flag, FlagEvent, GameState, Team } from './types';
 
 export interface FlagTransition { type: 'pickup' | 'drop' | 'return'; flagId: string; expectedRevision: number; position: Vector3; aircraft?: Aircraft; detail?: string; }
-export interface CaptureCandidate { team: Team; carrier: Aircraft; flagId: string; expectedRevision: number; captureId: string; }
+export interface CaptureCandidate { team: Team; carrier: Aircraft; flagId: string; expectedRevision: number; captureId: string; entryTime: number; }
 export interface FlagStartSnapshot { flags: Record<Team, Flag>; }
 export function createFlags(roundEpoch = 0, revisions: Record<Team, number> = { friendly: 0, enemy: 0 }): Record<Team, Flag> {
   return { friendly: { flagId: 'core-A', homeTeam: 'friendly', roundEpoch, revision: revisions.friendly, state: 'atHome' },
@@ -41,7 +40,7 @@ export function dropCarrierFlags(state: GameState, aircraft: Aircraft): FlagTran
     if (flag.state !== 'carried' || !sameRef(flag.carrier, aircraftRef(state, aircraft))) continue;
     const point = legalDropPosition(aircraft.position);
     state.flags[flag.homeTeam] = point
-      ? { ...base(flag), state: 'dropped', position: point, droppedAtPlayTick: state.playTicks, returnDuePlayTick: state.playTicks + FLAG_RETURN_TICKS }
+      ? { ...base(flag), state: 'dropped', position: point, droppedAtPlayTick: state.playTicks }
       : { ...base(flag), state: 'atHome' };
     transitions.push({ type: point ? 'drop' : 'return', flagId: flag.flagId, expectedRevision: flag.revision, position: point ?? BASE_POSITIONS[flag.homeTeam].clone(), aircraft, detail: point ? undefined : 'invalid-drop' });
   }
@@ -55,10 +54,6 @@ export function resolveFlagTransitions(state: GameState, start: FlagStartSnapsho
     if (before.revision !== flag.revision || flag.roundEpoch !== state.roundEpoch) continue;
     if (flag.state === 'carried') continue;
     const point = getFlagPosition(state, flag);
-    if (flag.state === 'dropped' && state.playTicks >= flag.returnDuePlayTick) {
-      state.flags[team] = { ...base(flag), state: 'atHome' };
-      transitions.push({ type: 'return', flagId: flag.flagId, expectedRevision: flag.revision, position: BASE_POSITIONS[team].clone(), detail: 'automatic' }); continue;
-    }
     if (flag.state === 'dropped') {
       const returning = contacts(state, point, team)[0];
       if (returning) {
@@ -78,13 +73,14 @@ export function captureCandidates(state: GameState, start: FlagStartSnapshot): C
   if (state.phase !== 'playing' || state.roundScored) return [];
   const candidates: CaptureCandidate[] = [];
   for (const team of ['friendly', 'enemy'] as const) {
-    if (start.flags[team].state !== 'atHome' || state.flags[team].state !== 'atHome') continue;
     const before = start.flags[otherTeam(team)], flag = state.flags[otherTeam(team)];
     if (before.state !== 'carried' || flag.state !== 'carried' || !sameRef(before.carrier, flag.carrier)) continue;
     const carrier = resolveAircraftRef(state, flag.carrier);
-    if (!carrier || carrier.team !== team || !eligible(state, carrier) || proximityTime(carrier, BASE_POSITIONS[team]) === null) continue;
+    if (!carrier || carrier.team !== team || !eligible(state, carrier)) continue;
+    const entryTime = proximityTime(carrier, BASE_POSITIONS[team]);
+    if (entryTime === null) continue;
     candidates.push({ team, carrier, flagId: flag.flagId, expectedRevision: flag.revision,
-      captureId: `${state.matchId}/${state.roundEpoch}/${state.tick}/capture/${team}/${carrier.slotId}/${carrier.generation}` });
+      captureId: `${state.matchId}/${state.roundEpoch}/${state.tick}/capture/${team}/${carrier.slotId}/${carrier.generation}`, entryTime });
   }
   return candidates;
 }
@@ -101,8 +97,7 @@ export function flagInvariantError(state: GameState): string | null {
       carriers.push(flag.carrier);
     } else if (flag.state === 'dropped') {
       const point = legalDropPosition(flag.position);
-      if (!point || !point.equals(flag.position) || !Number.isInteger(flag.droppedAtPlayTick) || flag.droppedAtPlayTick < 0
-        || !Number.isInteger(flag.returnDuePlayTick) || flag.returnDuePlayTick !== flag.droppedAtPlayTick + FLAG_RETURN_TICKS) return 'Invalid dropped flag';
+      if (!point || !Number.isInteger(flag.droppedAtPlayTick) || flag.droppedAtPlayTick < 0) return 'Invalid dropped flag';
     } else if (flag.state !== 'atHome') return 'Unknown flag state';
   }
   return null;

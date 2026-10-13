@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { RecordsService, MAX_STATISTIC, recordFromResult, recordGroup } from '../src/records';
 import { LocalStore, STORAGE_KEYS as K, type StorageLike, type ExclusiveLock } from '../src/storage';
 import type { GameResult, GameMode } from '../src/types';
+import { RULES_VERSION } from '../src/mission';
 
 class MemoryStorage implements StorageLike {
   readonly values = new Map<string, string>();
@@ -139,4 +140,14 @@ test('future and malformed record raw remain exact and never receive automatic w
     assert.equal(storage.values.get(K.records), raw);
     assert.equal(storage.writes, 0);
   }
+});
+
+test('one-core rules keep their best record separate from existing three-core records', async () => {
+  const { service } = setup();
+  assert.equal((await service.append(result('legacy-three-core'))).ok, true);
+  const current = result('current-one-core', { rulesVersion: RULES_VERSION, friendly: 1 });
+  assert.equal((await service.append(current)).ok, true);
+  const snapshot = service.load();
+  assert.equal(snapshot.best[recordGroup('normal', 'nusumidase-ctf-v1')].completedMatchId, 'legacy-three-core');
+  assert.equal(snapshot.best[recordGroup('normal', RULES_VERSION)].completedMatchId, 'current-one-core');
 });

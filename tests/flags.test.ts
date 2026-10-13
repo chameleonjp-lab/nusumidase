@@ -41,7 +41,7 @@ test('a closer swept entry wins before endpoint distance and stable slot tie', (
 });
 test('manual home-team return outranks a simultaneous enemy pickup', () => {
   const state = fixture(), point = new Vector3(0, 300, 0), flag = state.flags.enemy;
-  state.flags.enemy = { ...flag, state: 'dropped', position: point, droppedAtPlayTick: 1, returnDuePlayTick: 1801 };
+  state.flags.enemy = { ...flag, state: 'dropped', position: point, droppedAtPlayTick: 1 };
   place(state.player, point); place(state.enemies[0], point);
   const transitions = resolveFlagTransitions(state, flagStartSnapshot(state));
   assert.equal(state.flags.enemy.state, 'atHome'); assert.equal(transitions[0].detail, 'manual');
@@ -55,45 +55,54 @@ test('new carrier drop is contact-ineligible until next tick', () => {
   state.playTicks++; resolveFlagTransitions(state, flagStartSnapshot(state));
   assert.equal(state.flags.friendly.state, 'carried'); assert.equal(flagInvariantError(state), null);
 });
-test('due-tick automatic return blocks touching at both drop and newly restored home', () => {
-  const state = fixture(), point = new Vector3(0, 300, 0), flag = state.flags.enemy;
-  state.flags.enemy = { ...flag, state: 'dropped', position: point, droppedAtPlayTick: 1, returnDuePlayTick: 1801 };
-  place(state.player, point); place(state.allies[0], BASE_POSITIONS.enemy); state.playTicks = 1801;
+test('a core stays at the exact death point after thirty seconds and until contact, without following the dead carrier', () => {
+  const state = fixture(), point = new Vector3(2300, 80, 1700), carrier = state.player;
+  place(carrier, point);
+  state.flags.enemy = { ...state.flags.enemy, state: 'carried', carrier: aircraftRef(state, carrier) };
+  scheduleRespawn(state, carrier); dropCarrierFlags(state, carrier);
+  carrier.position.set(0, 300, 0);
+  for (const tick of [1900, 10000, 43199]) {
+    state.playTicks = tick;
+    assert.deepEqual(resolveFlagTransitions(state, flagStartSnapshot(state)), []);
+    assert.equal(state.flags.enemy.state, 'dropped');
+    assert.deepEqual(getFlagPosition(state, 'enemy').toArray(), point.toArray());
+    assert.equal(flagInvariantError(state), null);
+  }
+  place(state.allies[0], point);
   const transitions = resolveFlagTransitions(state, flagStartSnapshot(state));
-  assert.equal(state.flags.enemy.state, 'atHome'); assert.equal(transitions.length, 1); assert.equal(transitions[0].detail, 'automatic');
-  state.playTicks++; resolveFlagTransitions(state, flagStartSnapshot(state)); assert.equal(state.flags.enemy.state, 'carried');
+  assert.equal(state.flags.enemy.state, 'carried'); assert.equal(transitions[0].type, 'pickup');
 });
-test('drop projects all boundaries into reachable legal air and rejects NaN without a score', () => {
-  assert.deepEqual(legalDropPosition(new Vector3(3000, -50, -2000))?.toArray(), [2000, 150, -1400]);
-  assert.deepEqual(legalDropPosition(new Vector3(-3000, 2000, 2000))?.toArray(), [-2000, 750, 1400]);
+test('drop preserves finite boundary/sea death coordinates and rejects NaN without a score', () => {
+  assert.deepEqual(legalDropPosition(new Vector3(2401, 19, -1801))?.toArray(), [2401, 19, -1801]);
+  assert.deepEqual(legalDropPosition(new Vector3(-2300, 899, 1700))?.toArray(), [-2300, 899, 1700]);
   assert.equal(legalDropPosition(new Vector3(NaN, 100, 0)), null);
   const state = fixture(); state.flags.enemy = { ...state.flags.enemy, state: 'carried', carrier: aircraftRef(state, state.player) };
   state.player.position.x = NaN; const events = dropCarrierFlags(state, state.player);
   assert.equal(state.flags.enemy.state, 'atHome'); assert.equal(events[0].detail, 'invalid-drop'); assert.equal(state.scores.friendly, 0);
 });
-test('both flags carried or own flag dropped prevent capture; position derives from live carrier', () => {
+test('both flags carried or own flag dropped allow capture; position derives from live carrier', () => {
   const state = fixture(); place(state.player, BASE_POSITIONS.friendly);
   state.flags.enemy = { ...state.flags.enemy, state: 'carried', carrier: aircraftRef(state, state.player) };
   assert.deepEqual(getFlagPosition(state, 'enemy').toArray(), state.player.position.toArray());
   assert.equal(captureCandidates(state, flagStartSnapshot(state)).length, 1);
   state.flags.friendly = { ...state.flags.friendly, state: 'carried', carrier: aircraftRef(state, state.enemies[0]) };
-  place(state.enemies[0], BASE_POSITIONS.enemy); assert.equal(captureCandidates(state, flagStartSnapshot(state)).length, 0);
-  state.flags.friendly = { flagId: 'core-A', homeTeam: 'friendly', roundEpoch: 0, revision: 2, state: 'dropped', position: new Vector3(0, 300, 0), droppedAtPlayTick: 1, returnDuePlayTick: 1801 };
-  assert.equal(captureCandidates(state, flagStartSnapshot(state)).length, 0);
-});
-test('return during current tick requires next tick capture, including carrier waiting within the sphere', () => {
-  const state = fixture(); place(state.player, BASE_POSITIONS.friendly);
-  state.flags.enemy = { ...state.flags.enemy, state: 'carried', carrier: aircraftRef(state, state.player) };
-  state.flags.friendly = { ...state.flags.friendly, state: 'dropped', position: new Vector3(0, 300, 0), droppedAtPlayTick: 1, returnDuePlayTick: 1801 };
-  state.playTicks = 1801; const start = flagStartSnapshot(state); resolveFlagTransitions(state, start);
-  assert.equal(captureCandidates(state, start).length, 0); state.playTicks++;
+  place(state.enemies[0], BASE_POSITIONS.enemy); assert.equal(captureCandidates(state, flagStartSnapshot(state)).length, 2);
+  state.flags.friendly = { flagId: 'core-A', homeTeam: 'friendly', roundEpoch: 0, revision: 2, state: 'dropped', position: new Vector3(0, 300, 0), droppedAtPlayTick: 1 };
   assert.equal(captureCandidates(state, flagStartSnapshot(state)).length, 1);
 });
-test('own flag stolen on arrival tick prevents capture and newly picked-up flag cannot instantly score', () => {
+test('capture does not wait for an absent own core to return', () => {
+  const state = fixture(); place(state.player, BASE_POSITIONS.friendly);
+  state.flags.enemy = { ...state.flags.enemy, state: 'carried', carrier: aircraftRef(state, state.player) };
+  state.flags.friendly = { ...state.flags.friendly, state: 'dropped', position: new Vector3(0, 300, 0), droppedAtPlayTick: 1 };
+  state.playTicks = 1801; const start = flagStartSnapshot(state); resolveFlagTransitions(state, start);
+  assert.equal(state.flags.friendly.state, 'dropped'); assert.equal(captureCandidates(state, start).length, 1); state.playTicks++;
+  assert.equal(captureCandidates(state, flagStartSnapshot(state)).length, 1);
+});
+test('own flag stolen on arrival tick allows capture but newly picked-up enemy flag cannot instantly score', () => {
   const state = fixture(); place(state.player, BASE_POSITIONS.friendly); place(state.enemies[0], BASE_POSITIONS.friendly);
   state.flags.enemy = { ...state.flags.enemy, state: 'carried', carrier: aircraftRef(state, state.player) };
   const start = flagStartSnapshot(state); resolveFlagTransitions(state, start);
-  assert.equal(captureCandidates(state, start).length, 0);
+  assert.equal(captureCandidates(state, start).length, 1);
   const fresh = fixture(); place(fresh.player, BASE_POSITIONS.enemy); const previous = flagStartSnapshot(fresh);
   resolveFlagTransitions(fresh, previous); place(fresh.player, BASE_POSITIONS.friendly); assert.equal(captureCandidates(fresh, previous).length, 0);
 });

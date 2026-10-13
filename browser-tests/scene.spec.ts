@@ -81,15 +81,15 @@ test('a carried core is one separate child visual and drops without resource gro
       revision: 1, state: 'carried', carrier: ref.aircraftRef(h.state, h.state.player) }; h.render();
   });
   await settle(page);
-  expect(await page.evaluate(() => (window as any).__nusumidase.scene.diagnostics().flags.carriedCores)).toBe(1);
+  await expect.poll(() => page.evaluate(() => (window as any).__nusumidase.scene.diagnostics().flags.carriedCores)).toBe(1);
   await page.screenshot({ path: 'test-results/scene-carried.png' });
   await page.evaluate(() => {
     const h = (window as any).__nusumidase;
     h.state.flags.enemy = { flagId: 'core-B', homeTeam: 'enemy', roundEpoch: h.state.roundEpoch, revision: 2,
-      state: 'dropped', position: h.state.player.position.clone().set(0, 200, 0), droppedAtPlayTick: h.state.playTicks,
-      returnDuePlayTick: h.state.playTicks + 1800 }; h.render();
+      state: 'dropped', position: h.state.player.position.clone().set(0, 200, 0), droppedAtPlayTick: h.state.playTicks }; h.render();
   });
   await settle(page);
+  await expect.poll(() => page.evaluate(() => (window as any).__nusumidase.scene.diagnostics().flags.carriedCores)).toBe(0);
   const dropped = await page.evaluate(() => (window as any).__nusumidase.scene.diagnostics());
   expect(dropped.flags.carriedCores).toBe(0); expect(dropped.flags.cores).toBe(2);
   expect(dropped.geometries).toBe(before.geometries); expect(dropped.textures).toBe(before.textures);

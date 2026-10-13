@@ -7,7 +7,6 @@ export const BASE_POSITIONS: Readonly<Record<Team, Vector3>> = Object.freeze({
 });
 export const BASE_RADIUS = 45;
 export const ARENA_BOUNDS = Object.freeze({ minX: -2400, maxX: 2400, minZ: -1800, maxZ: 1800, minY: 20, maxY: 900 });
-export const DROP_BOUNDS = Object.freeze({ minX: -2000, maxX: 2000, minZ: -1400, maxZ: 1400, minY: 150, maxY: 750 });
 export const otherTeam = (team: Team): Team => team === 'friendly' ? 'enemy' : 'friendly';
 export const slotKey = (team: Team, slotId: number): string => `${team}:${slotId}`;
 export const aircraftOrder = (a: Aircraft, b: Aircraft): number => (a.team === b.team ? 0 : a.team === 'friendly' ? -1 : 1) || a.slotId - b.slotId;
@@ -19,10 +18,10 @@ export function isLegalPosition(point: Vector3): boolean {
 export function boundaryWarning(point: Vector3): boolean {
   return !finitePosition(point) || Math.abs(point.x) >= 2200 || Math.abs(point.z) >= 1600 || point.y <= 70 || point.y >= 850;
 }
-/** Sea waves are visual; the legal/drop reference plane remains y=0. */
+/** Preserve the actual death position. A dropped core never moves to a safer point. */
 export function legalDropPosition(point: Vector3): Vector3 | null {
   if (!finitePosition(point)) return null;
-  return new Vector3(Math.max(-2000, Math.min(2000, point.x)), Math.max(150, Math.min(750, point.y)), Math.max(-1400, Math.min(1400, point.z)));
+  return point.clone();
 }
 export function spawnPosition(team: Team, slotId: number): Vector3 { return new Vector3(team === 'friendly' ? -1750 : 1750, 300, (slotId - 2) * 100); }
 export function spawnYaw(team: Team): number { return team === 'friendly' ? -Math.PI / 2 : Math.PI / 2; }
