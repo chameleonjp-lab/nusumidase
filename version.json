@@ -1,5 +1,6 @@
 {
-  "sourceCommit": "eb213bead0f45c6578a7ee290dab96fba1fa8483",
+  "sourceCommit": "2accb1345fd38dbd17c6db5c6091c441c55ab15c",
   "publishedDate": "2026-10-13",
+  "rulesVersion": "nusumidase-ctf-v2",
   "buildCommand": "npm ci && npm run build"
 }
