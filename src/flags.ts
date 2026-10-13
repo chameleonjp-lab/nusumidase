@@ -54,13 +54,8 @@ export function resolveFlagTransitions(state: GameState, start: FlagStartSnapsho
     if (before.revision !== flag.revision || flag.roundEpoch !== state.roundEpoch) continue;
     if (flag.state === 'carried') continue;
     const point = getFlagPosition(state, flag);
-    if (flag.state === 'dropped') {
-      const returning = contacts(state, point, team)[0];
-      if (returning) {
-        state.flags[team] = { ...base(flag), state: 'atHome' };
-        transitions.push({ type: 'return', flagId: flag.flagId, expectedRevision: flag.revision, position: point, aircraft: returning, detail: 'manual' }); continue;
-      }
-    }
+    // The owning team cannot reset a dropped core by touching it.
+    // Only its opponents can acquire it here and carry it to their base.
     const carrier = contacts(state, point, otherTeam(team)).find(aircraft => !carriedFlagFor(state, aircraft));
     if (carrier) {
       state.flags[team] = { ...base(flag), state: 'carried', carrier: aircraftRef(state, carrier) };
@@ -102,7 +97,7 @@ export function flagInvariantError(state: GameState): string | null {
   }
   return null;
 }
-/** Score reset invalidates both revisions atomically and never counts as a manual return. */
+/** A fresh round invalidates both revisions atomically. */
 export function resetFlags(state: GameState): void {
   state.flags = createFlags(state.roundEpoch, { friendly: state.flags.friendly.revision + 1, enemy: state.flags.enemy.revision + 1 });
 }

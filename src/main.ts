@@ -59,7 +59,7 @@ function syncAudio(force=false) { audio.active = screen === 'playing' && state.p
 async function toggleAudio() { audio.enabled=!audio.enabled; if(audio.enabled) await audio.unlock(); syncAudio(); if(audio.failed) announce('音を再生できません'); }
 for (const id of ['home-sound','game-sound']) el(id).addEventListener('click',()=>void toggleAudio(),{signal});
 function begin() {
-  if (!ready || contextLost || disposed || (screen === 'playing' && state.phase === 'countdown')) return;
+  if (!ready || contextLost || disposed || screen === 'playing') return;
   clearInput(); audio.resetFlight(); state = createGame(undefined, selectedMode); startGame(state); lastInputEpoch=state.inputEpoch; lastResultId=''; el<HTMLButtonElement>('resume').disabled=false; notificationUntilTick=0; el('announcement').textContent=''; syncMode(); setScreen('playing'); updateHUD(); if(audio.enabled) void audio.unlock();
 }
 function pause(reason = '時計・復活・装填も停止しています') { if(screen !== 'playing')return; el<HTMLButtonElement>('resume').disabled=!state.recordEligible; pauseGame(state,reason); clearInput(); el('pause-reason').textContent=reason; setScreen('paused'); }
@@ -90,7 +90,7 @@ function updateHUD() {
   el('loop-status').textContent=p.loopProgress>0?'宙返り中':p.loopCooldown>0?`${p.loopCooldown.toFixed(1)}秒`:'すぐ使える';buttons.loop.disabled=!isAlive(p)||p.loopCooldown>0||state.phase!=='playing';
   const carried=carriedFlagFor(state,p);el('carrier-status').hidden=!carried;
   if(carried){const base=BASE_POSITIONS.friendly;el('carrier-status').textContent=`敵コア携行中\n自基地 ${Math.round(p.position.distanceTo(base))}m · 高度差 ${Math.round(base.y-p.position.y)}m`;}
-  let status=''; if(state.phase==='countdown')status=`出撃\n${Math.ceil((180-state.phaseTicks)/60)}`; else if(!isAlive(p))status=`撃墜 · 復活まで ${Math.max(0,Math.ceil(((p.respawnDuePlayTick??state.playTicks)-state.playTicks)/60))}秒`;else if(isProtected(state,p))status=`復活保護 ${Math.ceil((p.protectionUntilPlayTick-state.playTicks)/60)}秒`;
+  let status=''; if(!isAlive(p))status=`撃墜 · 復活まで ${Math.max(0,Math.ceil(((p.respawnDuePlayTick??state.playTicks)-state.playTicks)/60))}秒`;else if(isProtected(state,p))status=`復活保護 ${Math.ceil((p.protectionUntilPlayTick-state.playTicks)/60)}秒`;
   el('lifecycle-status').hidden=!status;setStatusText('lifecycle-status',status);
   const waiting=state.allies.filter(plane=>!isAlive(plane)&&plane.respawnDuePlayTick!==null);
   setStatusText('ally-announcements',waiting.length?`僚機${waiting.length}機が復活待ち · 最短${Math.max(0,Math.ceil((Math.min(...waiting.map(plane=>plane.respawnDuePlayTick!))-state.playTicks)/60))}秒`:'');
@@ -108,7 +108,7 @@ function processEvents(events: readonly Readonly<GameEvent>[]) {
     else if(event.type==='return')notice(`${event.flagId==='core-A'?'自軍':'敵軍'}コアが${event.detail==='automatic'?'自動帰還':'帰還'}`,4);
     else if(event.type==='drop')notice('携行機が撃墜 · コアが落下',5);
     else if(event.type==='respawn'&&event.owner===state.player.id)notice('復活 · 2秒間の保護',2,120);
-    else if(event.type==='warning')notice(event.detail??'コア奪還を優先',1,180);
+    else if(event.type==='warning')notice(event.detail??'敵コアを持ち帰ろう',1,180);
   }
   messages.sort((a,b)=>b.priority-a.priority);
   const unique=messages.filter((message,index)=>messages.findIndex(other=>other.text===message.text)===index).slice(0,3);
@@ -116,7 +116,7 @@ function processEvents(events: readonly Readonly<GameEvent>[]) {
 }
 function complete() {
   const result=state.result; if(!result||lastResultId===result.matchId)return;lastResultId=result.matchId;clearInput();
-  el('result-title').textContent=result.outcome==='victory'?'勝利':result.outcome==='defeat'?'敗北':'引分';el('result-reason').textContent=result.reason==='captures'?(result.outcome==='draw'?'同時にコアを持ち帰ったため引分':'先に1個のコアを持ち帰って決着'):'12分の有効プレイ時間で判定';el('result-time').textContent=formatTime(result.playTicks);el('result-captures').textContent=`${result.captures.friendly} — ${result.captures.enemy}`;el('result-personal-captures').textContent=`${result.stats.captures}回`;el('result-returns').textContent=`${result.stats.returns}回`;el('result-kills').textContent=`${result.stats.kills} / ${result.stats.deaths}`;el('result-rules').textContent=result.rulesVersion;el('record-warning').hidden=true;setScreen('result');audio.finishFlight();
+  el('result-title').textContent=result.outcome==='victory'?'勝利':result.outcome==='defeat'?'敗北':'引分';el('result-reason').textContent=result.reason==='captures'?(result.outcome==='draw'?'同時にコアを持ち帰ったため引分':'先に1個のコアを持ち帰って決着'):'12分の有効プレイ時間で判定';el('result-time').textContent=formatTime(result.playTicks);el('result-captures').textContent=`${result.captures.friendly} — ${result.captures.enemy}`;el('result-personal-captures').textContent=`${result.stats.captures}回`;el('result-kills').textContent=`${result.stats.kills} / ${result.stats.deaths}`;el('result-rules').textContent=result.rulesVersion;el('record-warning').hidden=true;setScreen('result');audio.finishFlight();
   const matchId=result.matchId;void records.append(result).then(saved=>{if(disposed||lastResultId!==matchId)return;el('record-warning').hidden=saved.ok;el('record-warning').textContent=saved.message;showBest();});
 }
 function advance(dt: number) {

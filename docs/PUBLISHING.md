@@ -19,6 +19,8 @@ GitHub Pages の公開元は `Deploy from a branch`、ブランチは `gh-pages`
 
 ## 再公開
 
+原則は `main` を公開対象にします。ただし利用者が修正後の公開を指示し、PRのマージをしないよう指定している場合は、検査済みのPRコミットを固定して公開できます。PRは未マージのまま保持し、`version.json` に実際に公開した `sourceCommit` と `sourceBranch` を記録します。再公開時は現在の `version.json` を読み、未マージの公開済み修正を古い `main` で取り消さないよう対象を確認します。
+
 1. 公開対象の `main` のコミットを固定し、Node.js 24 で `npm ci`、`npm test`、`npm run build` を実行します。
 2. `dist/` に空の `.nojekyll` と `version.json` を加えます。`version.json` の `sourceCommit` に固定したソースのコミット、`publishedDate` に公開日、`buildCommand` に `npm ci && npm run build` を記録します。
 3. `gh-pages` の履歴を保持し、公開用のファイル一式を新しいコミットで置き換えます。`main` を公開用ファイルで上書きしません。不要になった古い `assets/` は新しい公開コミットに含めません。

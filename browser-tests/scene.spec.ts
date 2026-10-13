@@ -9,7 +9,7 @@ async function ready(page: Page, mode: 'normal' | 'easy' = 'easy') {
   await expect(page.locator('#start')).toBeEnabled({ timeout: 60000 });
   if (mode === 'normal') await page.locator('input[name="game-mode"][value="normal"]').check();
   await page.evaluate(() => {
-    const h = (window as any).__nusumidase; h.manual(true); h.begin(); h.step(180);
+    const h = (window as any).__nusumidase; h.manual(true); h.begin();
   });
   await settle(page);
 }
@@ -34,7 +34,7 @@ test('source camera and ten renderer slots stay stable through twenty retries', 
   });
   expect(cameraError.position).toBeLessThan(1e-9); expect(cameraError.rotation).toBeLessThan(1e-7);
   for (let iteration = 0; iteration < 20; iteration++) {
-    await page.evaluate(() => { const h = (window as any).__nusumidase; h.begin(); h.step(180); });
+    await page.evaluate(() => { const h = (window as any).__nusumidase; h.home(); h.begin(); });
     await settle(page);
   }
   const final = await page.evaluate(() => (window as any).__nusumidase.scene.diagnostics());
@@ -60,6 +60,12 @@ test('death freezes the camera and respawn resets it to the source pose', async 
   expect(dead.lifecycle).toBe('respawnPending'); expect(dead.camera).toEqual(before);
   await page.evaluate(() => (window as any).__nusumidase.step(480));
   await settle(page);
+  await expect.poll(() => page.evaluate(async () => {
+    const h = (window as any).__nusumidase, view = await import('/src/flight-view.ts' as string);
+    const position = h.state.player.position.clone(), quaternion = h.state.player.quaternion.clone();
+    view.getFlightCameraPose(h.state.player, h.state.mode, position, quaternion);
+    return position.distanceTo(h.scene.camera.position);
+  })).toBeLessThan(1e-9);
   const respawned = await page.evaluate(async () => {
     const h = (window as any).__nusumidase, view = await import('/src/flight-view.ts' as string);
     const position = h.state.player.position.clone(), quaternion = h.state.player.quaternion.clone();
@@ -116,7 +122,7 @@ test('render effects are bounded, expire at five seconds and clear on retry', as
   await settle(page);
   const expired = await page.evaluate(() => (window as any).__nusumidase.scene.diagnostics());
   expect(expired.particles).toBe(0); expect(expired.wrecks).toBe(0);
-  await page.evaluate(() => { const h = (window as any).__nusumidase; h.begin(); h.step(180); });
+  await page.evaluate(() => { const h = (window as any).__nusumidase; h.home(); h.begin(); });
   await settle(page);
   const reset = await page.evaluate(() => (window as any).__nusumidase.scene.diagnostics());
   expect(reset.particles).toBe(0); expect(reset.wrecks).toBe(0); expect(reset.planes).toBe(10);
@@ -190,7 +196,7 @@ test('accelerated twelve effective minute renderer soak keeps resources bounded'
   });
   const initial = await sample();
   const samples = [initial];
-  // At most 43,200 playing ticks plus countdowns. The existing harness runs
+  // At most 43,200 playing ticks. The existing harness runs
   // normal simulation/event/audio code and renders after every 600-tick chunk.
   for (let chunk = 0; chunk < 75; chunk++) {
     if (samples.at(-1)!.phase === 'ended' || samples.at(-1)!.phase === 'paused') break;

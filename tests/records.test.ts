@@ -142,12 +142,14 @@ test('future and malformed record raw remain exact and never receive automatic w
   }
 });
 
-test('one-core rules keep their best record separate from existing three-core records', async () => {
+test('immediate-start rules keep their best record separate from both previous rule versions', async () => {
   const { service } = setup();
   assert.equal((await service.append(result('legacy-three-core'))).ok, true);
+  assert.equal((await service.append(result('previous-one-core', { rulesVersion: 'nusumidase-ctf-v2', friendly: 1 }))).ok, true);
   const current = result('current-one-core', { rulesVersion: RULES_VERSION, friendly: 1 });
   assert.equal((await service.append(current)).ok, true);
   const snapshot = service.load();
   assert.equal(snapshot.best[recordGroup('normal', 'nusumidase-ctf-v1')].completedMatchId, 'legacy-three-core');
+  assert.equal(snapshot.best[recordGroup('normal', 'nusumidase-ctf-v2')].completedMatchId, 'previous-one-core');
   assert.equal(snapshot.best[recordGroup('normal', RULES_VERSION)].completedMatchId, 'current-one-core');
 });

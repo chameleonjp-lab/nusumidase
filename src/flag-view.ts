@@ -78,7 +78,9 @@ export class FlagView {
 
   diagnostics() {
     return { bases: TEAMS.length, cores: TEAMS.length,
-      carriedCores: TEAMS.filter(team => this.cores[team].parent !== this.root).length };
+      carriedCores: TEAMS.filter(team => this.cores[team].parent !== this.root).length,
+      visibleCores: TEAMS.filter(team => this.cores[team].visible).length,
+      corePositions: Object.fromEntries(TEAMS.map(team => [team, this.cores[team].getWorldPosition(new Vector3()).toArray()])) };
   }
 
   dispose(): void {

@@ -212,8 +212,7 @@ export class NusumidaseScene {
       if (event.tick < this.lastEventTick || (event.tick === this.lastEventTick && event.eventSeq <= this.lastEventSeq)) continue;
       this.lastEventTick = event.tick; this.lastEventSeq = event.eventSeq;
       if (event.type !== 'hit' && event.type !== 'kill' && event.type !== 'splash') continue;
-      // Event.tick includes countdown/reset ticks while elapsed is playing
-      // time. Effects start on delivery in the authoritative playing clock.
+      // Effects start on delivery in the authoritative playing clock.
       const born = time;
       if (event.type === 'kill' && event.target !== undefined) {
         const target = this.current.slots.find(plane => plane.id === event.target);

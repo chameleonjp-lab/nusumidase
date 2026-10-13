@@ -39,12 +39,17 @@ test('a closer swept entry wins before endpoint distance and stable slot tie', (
   resolveFlagTransitions(state, flagStartSnapshot(state));
   assert.equal(state.flags.enemy.state === 'carried' && state.flags.enemy.carrier.slotId, 1);
 });
-test('manual home-team return outranks a simultaneous enemy pickup', () => {
+test('home-team contact leaves a dropped core in place, even during an opposing pickup', () => {
   const state = fixture(), point = new Vector3(0, 300, 0), flag = state.flags.enemy;
   state.flags.enemy = { ...flag, state: 'dropped', position: point, droppedAtPlayTick: 1 };
-  place(state.player, point); place(state.enemies[0], point);
+  place(state.enemies[0], point);
+  const dropped = state.flags.enemy;
+  assert.deepEqual(resolveFlagTransitions(state, flagStartSnapshot(state)), []);
+  assert.equal(state.flags.enemy, dropped); assert.deepEqual(getFlagPosition(state, 'enemy'), point);
+  place(state.player, point);
   const transitions = resolveFlagTransitions(state, flagStartSnapshot(state));
-  assert.equal(state.flags.enemy.state, 'atHome'); assert.equal(transitions[0].detail, 'manual');
+  assert.equal(state.flags.enemy.state, 'carried'); assert.equal(transitions[0].type, 'pickup');
+  if (state.flags.enemy.state === 'carried') assert.deepEqual(state.flags.enemy.carrier, aircraftRef(state, state.player));
 });
 test('new carrier drop is contact-ineligible until next tick', () => {
   const state = fixture(), dead = state.enemies[0], point = new Vector3(0, 300, 0);
@@ -106,7 +111,7 @@ test('own flag stolen on arrival tick allows capture but newly picked-up enemy f
   const fresh = fixture(); place(fresh.player, BASE_POSITIONS.enemy); const previous = flagStartSnapshot(fresh);
   resolveFlagTransitions(fresh, previous); place(fresh.player, BASE_POSITIONS.friendly); assert.equal(captureCandidates(fresh, previous).length, 0);
 });
-test('old match/epoch/revision/tick flag events fail validation; protected planes cannot acquire or return', () => {
+test('old match/epoch/revision/tick flag events fail validation; protected planes cannot acquire', () => {
   const state = fixture(), flag = state.flags.enemy, event = { matchId: state.matchId, roundEpoch: state.roundEpoch, tick: state.tick, eventSeq: 1, flagId: flag.flagId, expectedRevision: flag.revision };
   assert.equal(validateFlagEvent(state, event), flag);
   for (const changed of [{ matchId: 'old' }, { roundEpoch: 99 }, { expectedRevision: 99 }, { tick: state.tick - 1 }]) assert.equal(validateFlagEvent(state, { ...event, ...changed }), null);

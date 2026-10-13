@@ -10,12 +10,11 @@ test('20 fixed-seed idle matches reach a finite result within twelve effective m
   let captures = 0, pickups = 0;
   for (let seed = 1; seed <= 20; seed++) {
     const state = createGame(seed, seed % 2 ? 'normal' : 'easy'); startGame(state);
-    // Only the initial three-second countdown adds non-playing ticks.
-    for (let steps = 0; steps < MATCH_PLAY_TICKS + 1000 && state.phase !== 'ended'; steps++) {
+    for (let steps = 0; steps < MATCH_PLAY_TICKS && state.phase !== 'ended'; steps++) {
       const before = state.playTicks; stepFixed(state, neutral);
       assert.notEqual(state.phase, 'paused', `seed=${seed}, tick=${state.tick}, reason=${state.pauseReason}`);
       assert.equal(stateInvariantError(state), null, `seed=${seed}, tick=${state.tick}`);
-      assert.ok(state.playTicks === before || state.playTicks === before + 1);
+      assert.equal(state.playTicks, before + 1);
       for (const event of state.events) {
         if (event.type === 'capture' && event.owner !== state.player.id) captures++;
         if (event.type === 'pickup' && event.owner !== state.player.id) pickups++;

@@ -1,6 +1,6 @@
 # ヌスミダセ 実装計画書
 
-2026-10-13追補: コアは撃破位置に留まり、時間による自動帰還はしない。敵コアを先に1個持ち帰った側が、自旗の所在に関係なく勝利する。ルール版は `nusumidase-ctf-v2` とする。
+2026-10-13追補: 出撃はカウントダウンなしで即開始。自機・僚機・敵機のどの携行機が撃破されてもコアはその位置に残り、時間経過・所属チームの接触では基地へ戻らない。相手チームはその場から再取得・運搬できる。敵コアを先に1個持ち帰った側が、自旗の所在に関係なく勝利する。ルール版は `nusumidase-ctf-v3` とする。
 
 主継承元は [カイセン](https://github.com/chameleonjp-lab/kaisen)、固定baselineは [3d751051dc6212482a129e8da596ddd349b2f9f5](https://github.com/chameleonjp-lab/kaisen/tree/3d751051dc6212482a129e8da596ddd349b2f9f5)。機体・飛行の照合元は [ファイトフライト c2b313d37875b93458032d98636fcf5b5d30a138](https://github.com/chameleonjp-lab/faitofuraito/tree/c2b313d37875b93458032d98636fcf5b5d30a138)。元作の見た目と操縦を保持したまま、二基地の空中旗取りを新しい試合stateとして接続する。
 
@@ -102,7 +102,7 @@ simulationとinputの再現traceは数値/ID/seedのみとし、device識別や�
 ### P4 復活と4役AI
 
 - 8秒復活、120tick保護、1slot1予約、世代更新、reset/endキャンセルを接続
-- 攻撃/護送/迎撃/奪還を6tick評価、priorityと120tickhysteresis、有限経路探索を導入
+- 攻撃/護送/迎撃/落下コア周辺の警戒を6tick評価、priorityと120tickhysteresis、有限経路探索を導入
 - 自機死亡でもAIと時計が進む、camera固定、復活後target110、入力持越しなしを確認
 - 終了: 敵味方AI同条件で循環、旗を運び得点できる。1機/全滅/両旗不在/10秒stuckからの再経路fixtureと20seed無操作試合が12分以内の判定へ到達。勝率50%を無根拠に保証しない
 
@@ -138,12 +138,12 @@ simulationとinputの再現traceは数値/ID/seedのみとし、device識別や�
 | T01 FLAG-01 | 生成、全state遷移、長いランダムevent列 | 旗2、各旗1state、機体最大1旗、carrier生存世代一致を全step assert |
 | T02 FLAG-01 | 取得球44.999/45/45.001m、141m/sで跨ぐ | 内/境界は候補、外は不可、swept crossingも1回取得 |
 | T03 FLAG-01 | 敵2機同tick同点距離、配列順を逆転 | fraction→距離→slot順で同一の1owner |
-| T04 FLAG-01 | dropへ自/敵同tick接近、先に敵配列を走査 | 自軍帰還優先、同tick敵再取得なし |
+| T04 FLAG-01 | dropへ両陣営が同tick接近、配列順を逆転 | 所属側接触は無変更、相手側がその位置で取得 |
 | T05 FLAG-01 | carrier撃墜地点へ別機が同tick存在 | そのtickはdropのみ、次tickからpickup可能 |
 | T06 FLAG-01 | drop1799tick/1800tick/長時間、再取得 | 位置を維持、自動帰還なし。接近で再取得 |
 | T07 WORLD-02 | 海面・場外・上限・NaN drop | 有限なら撃破位置を維持、非有限は理由付きhome、無得点 |
 | T08 FLAG-02 | 敵旗持帰り、自旗carriedまたはdropped | 自旗の所在に関係なく1個で勝利、奪還必須表示なし |
-| T09 FLAG-02 | 回収球内待機、自旗が今tick帰還 | 自旗の帰還を待たず、持帰り条件を満たせばそのtickに1点で終了 |
+| T09 FLAG-02 | 自旗がdroppedのまま回収球へ到着 | 自旗の所在に関係なく、そのtickに1点で終了 |
 | T10 FLAG-02 | 到着tickに自旗被奪取 | 持帰り可能、旗owner一意 |
 | T11 FLAG-03 | 到着tick致死/敵carrier双方致死 | 致死carrierはdrop、両者相打ち、得点なし |
 | T12 FLAG-03 | 双方が敵旗を保持し自基地へ到着 | 交差fractionが早い側の勝利、同fractionは引分。重複候補注入なら安全pause・記録対象外 |
@@ -176,7 +176,7 @@ simulationとinputの再現traceは数値/ID/seedのみとし、device識別や�
 | T39 STORE-02 | 別タブ更新→Save、Save→閉→開→reload反復 | stale書込中止、完了分readback一致、Cancelはwrite0 |
 | T40 STORE-02 | 今回だけ使う、設定×/Esc/保存後pause | sessionのみ適用、破棄は元値/focus、pauseから勝手に再開なし |
 | T41 STORE-03 | victory→result連打→retry、途中reload | 終了記録1回、未完記録なし、最新20/版別best、未来raw保持 |
-| T42 UI-01 | 両旗不在/携行/回収不可/自動帰還/復活待ち | HUDの理由・時計・markerが正本と一致、音なしでも判別 |
+| T42 UI-01 | 両旗不在/携行/落下/再取得/復活待ち | HUDの理由・時計・markerが正本と一致、音なしでも判別 |
 | T43 LIMIT-01 | 10機連射12分、20retry、破棄後callback | 定員/弾/queue/wreck上限、listener/資源単調増殖なし |
 | T44 LIMIT-01 | 意味event128超、描画queue512超 | critical不足はpause、描画破棄で正本変化なし |
 | T45 AC-VISUAL | 元作対本作8画面＋機体/カメラ | 同環境実画像・diff・目視、差分は要件2.2で説明。未確認を合格にしない |

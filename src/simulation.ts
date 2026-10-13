@@ -5,7 +5,7 @@ import { advanceAmmunition, collectBulletDamage, collectContactDamage, fireAircr
 import { autoFireTarget, getFlightAssist } from './flight-assist';
 import { advanceThrottle, createFlightController, MAX_SPEED, updateAircraftMotion, updatePlayerLoop, type FlightController } from './flight';
 import { captureCandidates, createFlags, dropCarrierFlags, flagInvariantError, flagStartSnapshot, resolveFlagTransitions, type CaptureCandidate, type FlagStartSnapshot, type FlagTransition } from './flags';
-import { CAPTURES_TO_WIN, COUNTDOWN_TICKS, FIXED_DT, makeSlots, MATCH_PLAY_TICKS, MAX_ACCUMULATOR, MAX_EVENTS_PER_STEP, MAX_STEPS_PER_FRAME, resolveMissionConfig, RULES_VERSION } from './mission';
+import { CAPTURES_TO_WIN, FIXED_DT, makeSlots, MATCH_PLAY_TICKS, MAX_ACCUMULATOR, MAX_EVENTS_PER_STEP, MAX_STEPS_PER_FRAME, resolveMissionConfig, RULES_VERSION } from './mission';
 import { aircraftRef, cancelRespawns, isAlive, isProtected, processRespawns, resolveAircraftRef, sameRef, scheduleRespawn } from './respawn';
 import type { Aircraft, DamageEvent, FlightInput, GameEvent, GameMode, GameState, MissionConfig, MissionStats, Team } from './types';
 export { FIXED_DT } from './mission';
@@ -70,7 +70,7 @@ export function createGame(seed = 0x4e555355, config: Partial<MissionConfig> | G
 }
 export function startGame(state: GameState): void {
   if (state.phase !== 'ready') return;
-  state.phase = 'countdown'; state.phaseTicks = 0; invalidateInputs(state);
+  state.phase = 'playing'; state.phaseTicks = 0; invalidateInputs(state);
 }
 export function pauseGame(state: GameState, reason = 'user'): void {
   if (state.phase === 'paused' || state.phase === 'ended' || state.phase === 'ready') return;
@@ -101,10 +101,6 @@ function finish(state: GameState, reason: 'captures' | 'time'): void {
 function flagNotifications(state: GameState, transitions: FlagTransition[]): void {
   for (const transition of transitions) {
     emit(state, transition.type, transition.aircraft ?? null, { flagId: transition.flagId, expectedRevision: transition.expectedRevision, position: transition.position, detail: transition.detail });
-    if (transition.type === 'return' && transition.detail === 'manual' && transition.aircraft) {
-      state.stats.teamReturns[transition.aircraft.team] = bounded(state.stats.teamReturns[transition.aircraft.team]);
-      if (transition.aircraft === state.player) state.stats.returns = bounded(state.stats.returns);
-    }
   }
 }
 /** Dispatch exactly once for current match/epoch/tick/generation. It is consumed in the damage transaction. */
@@ -217,11 +213,6 @@ export function stepFixed(state: GameState, supplied: FlightInput): boolean {
   if (state.phase === 'ready' || state.phase === 'paused' || state.phase === 'ended') return false;
   const meta = metaFor(state); meta.eventSeq = 0; meta.pendingEvents = []; meta.overflow = false;
   const input = normalizedInput(state, supplied); state.tick++;
-  if (state.phase === 'countdown') {
-    state.phaseTicks++;
-    if (state.phaseTicks >= COUNTDOWN_TICKS) { state.phase = 'playing'; state.phaseTicks = 0; }
-    commitEvents(state); return true;
-  }
   state.playTicks++; state.elapsed = state.playTicks * FIXED_DT;
   for (const plane of processRespawns(state).sort(aircraftOrder)) {
     emit(state, 'respawn', plane);
@@ -269,7 +260,7 @@ export function stepFixed(state: GameState, supplied: FlightInput): boolean {
         if (meta.pendingEvents.length >= MAX_EVENTS_PER_STEP) invariantPause(state, 'meaning event limit exceeded');
         else finish(state, 'time');
       }
-      else if (state.playTicks - state.lastCapturePlayTick > 0 && (state.playTicks - state.lastCapturePlayTick) % 5400 === 0) emit(state, 'warning', null, { detail: 'コア奪還を優先' });
+      else if (state.playTicks - state.lastCapturePlayTick > 0 && (state.playTicks - state.lastCapturePlayTick) % 5400 === 0) emit(state, 'warning', null, { detail: '敵コアを持ち帰ろう' });
       if (state.playTicks === MATCH_PLAY_TICKS - 3600) emit(state, 'warning', null, { detail: '残り60秒' });
     }
   }
@@ -287,7 +278,7 @@ export function stepGame(state: GameState, source: FlightInput | (() => FlightIn
     const input = typeof source === 'function' ? source() : source;
     meta.accumulator = Math.max(0, meta.accumulator - FIXED_DT);
     if (!stepFixed(state, input)) break; steps++; onStep?.(input);
-    if (!['countdown', 'playing'].includes(state.phase)) break;
+    if (state.phase !== 'playing') break;
   }
   return steps;
 }
