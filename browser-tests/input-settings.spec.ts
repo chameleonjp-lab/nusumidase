@@ -7,7 +7,6 @@ async function setup(page: Page, mode: 'normal' | 'easy' = 'normal') {
   await page.evaluate(() => (window as HarnessWindow).__nusumidase.manual());
   await page.locator(`input[name="game-mode"][value="${mode}"]`).check();
   await page.locator('#start').click();
-  await page.evaluate(() => (window as HarnessWindow).__nusumidase.step(180));
   await expect.poll(() => page.evaluate(() => (window as HarnessWindow).__nusumidase.state.phase)).toBe('playing');
   await page.locator('#flight').focus();
 }

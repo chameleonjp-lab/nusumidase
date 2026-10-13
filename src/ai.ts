@@ -105,6 +105,10 @@ function missionTarget(state: GameState, plane: Aircraft): { point: Vector3; key
     return { point: home.clone(), key: 'return', moving: false };
   }
   if (plane.aiRole === 'recover' && ownFlag.state !== 'atHome') {
+    if (ownFlag.state === 'dropped') {
+      return { point: orbitWaypoint(plane, ownFlag.position, 140, plane.slotId % 2 ? 1 : -1),
+        key: `guard:${ownFlag.revision}`, moving: true };
+    }
     const thief = carrierFor(state, ownFlag), point = flagPosition(state, ownFlag);
     if (thief) point.addScaledVector(forwardOf(thief), thief.speed * Math.min(1.5, plane.position.distanceTo(point) / 550));
     return { point: legalWaypoint(point), key: `recover:${ownFlag.revision}`, moving: Boolean(thief) };

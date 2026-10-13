@@ -2,13 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Vector3 } from 'three';
 import { BASE_POSITIONS } from '../src/arena';
-import { captureCandidates, flagStartSnapshot } from '../src/flags';
+import { captureCandidates, flagStartSnapshot, getFlagPosition, resolveFlagTransitions } from '../src/flags';
 import { aircraftRef, isProtected, processRespawns, scheduleRespawn } from '../src/respawn';
 import { acknowledgeInputReset, applyCaptureCandidates, createGame, getPlayerTargetSpeed, pauseGame, queueDamageEvent, resumeGame, startGame, stateInvariantError, stepFixed, stepGame } from '../src/simulation';
 import { FIXED_DT, MATCH_PLAY_TICKS } from '../src/mission';
 import type { Aircraft, DamageEvent, GameState } from '../src/types';
 const neutral = { turn: 0, climb: 0, fire: false, loop: false, throttle: 0 };
-function playing(): GameState { const state = createGame(5, 'normal'); startGame(state); for (let i = 0; i < 180; i++) stepFixed(state, neutral); return state; }
+function playing(): GameState { const state = createGame(5, 'normal'); startGame(state); acknowledgeInputReset(state, state.inputEpoch); return state; }
 function place(plane: Aircraft, point: Vector3): void { plane.position.copy(point); plane.previous.copy(point); }
 function captureFixture(state: GameState): void {
   place(state.player, BASE_POSITIONS.friendly); state.flags.enemy = { ...state.flags.enemy, state: 'carried', carrier: aircraftRef(state, state.player) };
@@ -17,12 +17,47 @@ function killEvent(state: GameState, plane: Aircraft, eventSeq = 999): DamageEve
   return { matchId: state.matchId, roundEpoch: state.roundEpoch, tick: state.tick + 1, eventSeq, target: aircraftRef(state, plane), amount: 80, cause: 'bullet', owner: aircraftRef(state, plane.team === 'friendly' ? state.enemies[0] : state.player) };
 }
 
-test('countdown ticks and pause freeze every state clock; resume preserves phase and requires fresh controls', () => {
-  const state = createGame(); startGame(state); for (let i = 0; i < 179; i++) stepFixed(state, neutral);
-  assert.equal(state.phase, 'countdown'); assert.equal(state.phaseTicks, 179); assert.equal(state.playTicks, 0);
+test('start enters play immediately; the first tick moves aircraft and pause freezes every clock', () => {
+  const state = createGame(); startGame(state);
+  assert.equal(state.phase, 'playing'); assert.equal(state.phaseTicks, 0); assert.equal(state.playTicks, 0);
+  const position = state.player.position.clone(); stepFixed(state, neutral);
+  assert.equal(state.playTicks, 1); assert.equal(state.tick, 1); assert.notDeepEqual(state.player.position, position);
   pauseGame(state); const snapshot = JSON.stringify(state); for (let i = 0; i < 600; i++) assert.equal(stepFixed(state, neutral), false);
   assert.equal(JSON.stringify(state), snapshot); resumeGame(state); stepFixed(state, neutral);
-  assert.equal(state.phase, 'playing'); assert.equal(state.playTicks, 0); stepFixed(state, neutral); assert.equal(state.playTicks, 1);
+  assert.equal(state.phase, 'playing'); assert.equal(state.playTicks, 2);
+});
+
+test('every player, ally and enemy carrier leaves its core at death, across respawn and another pickup/drop', () => {
+  for (let index = 0; index < 10; index++) {
+    const state = playing(), carrier = state.slots[index], coreTeam = carrier.team === 'friendly' ? 'enemy' : 'friendly';
+    const point = new Vector3(0, 400, 600);
+    place(carrier, point);
+    state.flags[coreTeam] = { ...state.flags[coreTeam], state: 'carried', carrier: aircraftRef(state, carrier) };
+    assert.equal(queueDamageEvent(state, killEvent(state, carrier)), true); stepFixed(state, neutral);
+    const deathPoint = carrier.position.clone(), dropped = state.flags[coreTeam];
+    assert.equal(carrier.lifecycle, 'respawnPending', `carrier ${index}`);
+    assert.equal(dropped.state, 'dropped'); assert.deepEqual(getFlagPosition(state, coreTeam), deathPoint);
+    const owner = state.slots.find(plane => plane.team === coreTeam)!;
+    place(owner, deathPoint); resolveFlagTransitions(state, flagStartSnapshot(state));
+    assert.equal(state.flags[coreTeam], dropped, 'the core owner cannot reset it by contact');
+    state.playTicks += 1801; processRespawns(state);
+    assert.equal(carrier.generation, 2); assert.equal(carrier.lifecycle, 'active');
+    assert.deepEqual(getFlagPosition(state, coreTeam), deathPoint);
+    assert.equal(state.flags[coreTeam], dropped);
+    const nextCarrier = state.slots.find(plane => plane.team === carrier.team && plane !== carrier)!;
+    place(nextCarrier, deathPoint); resolveFlagTransitions(state, flagStartSnapshot(state));
+    const picked = state.flags[coreTeam];
+    assert.equal(picked.state, 'carried');
+    if (picked.state === 'carried') assert.deepEqual(picked.carrier, aircraftRef(state, nextCarrier));
+    place(owner, new Vector3(1200, 500, -900));
+    place(nextCarrier, new Vector3(300, 450, 700));
+    assert.equal(queueDamageEvent(state, killEvent(state, nextCarrier)), true); stepFixed(state, neutral);
+    assert.equal(state.flags[coreTeam].state, 'dropped');
+    assert.deepEqual(getFlagPosition(state, coreTeam), nextCarrier.position);
+    assert.notDeepEqual(getFlagPosition(state, coreTeam), deathPoint);
+    assert.equal(stateInvariantError(state), null);
+    assert.deepEqual(state.scores, { friendly: 0, enemy: 0 });
+  }
 });
 test('frame adapter never consumes zero-step input, caps catch-up at five and pauses excessive backlog', () => {
   const state = playing(); let samples = 0, acks = 0;

@@ -3,7 +3,7 @@ import test from 'node:test';
 import { FlightControls } from '../src/input';
 import { KeyboardSettings } from '../src/keyboard-settings';
 import { advanceThrottle, createFlightController } from '../src/flight';
-import { createGame, startGame, stepGame, stepFixed, flightControllerFor } from '../src/simulation';
+import { acknowledgeInputReset, createGame, startGame, stepGame, flightControllerFor } from '../src/simulation';
 
 class ElementMock {
   attributes=new Map<string,string>(); captures=new Set<number>(); tabIndex=0; isContentEditable=false;
@@ -52,7 +52,7 @@ test('short keys and AT fire/loop remain through zero-tick samples and acknowled
 
 test('short input reaches product target on one actual tick, never zero or all catch-up ticks',()=>{
   const {controls}=fixture(),state=createGame(42,'normal');startGame(state);
-  for(let i=0;i<180;i++)stepFixed(state,{turn:0,climb:0,fire:false,loop:false,throttle:0});
+  acknowledgeInputReset(state,state.inputEpoch);
   assert.equal(state.phase,'playing');
   controls.keyDown(key('KeyW'));controls.keyUp(key('KeyW'));
   const controller=flightControllerFor(state);const initial=controller.playerTargetSpeed;

@@ -3,10 +3,9 @@ import { createFlightController, CRUISE_SPEED, updateQuaternion } from './flight
 import { spawnPosition, spawnYaw } from './arena';
 import type { Aircraft, GameMode, MissionConfig, Team } from './types';
 export { createFlightController };
-export const RULES_VERSION = 'nusumidase-ctf-v2';
+export const RULES_VERSION = 'nusumidase-ctf-v3';
 export const FIXED_DT = 1 / 60;
 export const MATCH_PLAY_TICKS = 12 * 60 * 60;
-export const COUNTDOWN_TICKS = 180;
 export const RESPAWN_TICKS = 480;
 export const RESPAWN_PROTECTION_TICKS = 120;
 export const CAPTURES_TO_WIN = 1;

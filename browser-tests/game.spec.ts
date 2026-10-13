@@ -14,9 +14,8 @@ async function openReview(page: Page): Promise<string[]> {
 async function startFlight(page: Page): Promise<void> {
   await page.locator('input[name="game-mode"][value="normal"]').check();
   await page.locator('#start').click();
-  expect(await page.evaluate(() => (window as any).__nusumidase.state.phase)).toBe('countdown');
-  await page.evaluate(() => (window as any).__nusumidase.step(180));
   expect(await page.evaluate(() => (window as any).__nusumidase.state.phase)).toBe('playing');
+  expect(await page.evaluate(() => (window as any).__nusumidase.state.playTicks)).toBe(0);
 }
 /** Set a legal same-generation carried flag at the collection sphere; scoring still runs through the reducer. */
 async function capture(page: Page): Promise<void> {
@@ -46,7 +45,7 @@ async function endAtTime(page: Page, friendly = 0, enemy = 0): Promise<void> {
   })).toBe(id);
 }
 
-test('home → countdown → flight → pause/settings discard → resume → capture → result → retry', async ({ page }) => {
+test('home → immediate flight → pause/settings discard → resume → capture → result → immediate retry', async ({ page }) => {
   const errors = await openReview(page);
   await expect(page.locator('#home')).toBeVisible();
   await startFlight(page);
@@ -84,7 +83,8 @@ test('home → countdown → flight → pause/settings discard → resume → ca
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('nusumidase-records-v1') ?? '{"latest":[]}').latest.length)).toBe(1);
   await page.locator('#retry').click();
   await expect(page.locator('#result')).not.toBeVisible();
-  expect(await page.evaluate(() => (window as any).__nusumidase.state.phase)).toBe('countdown');
+  expect(await page.evaluate(() => (window as any).__nusumidase.state.phase)).toBe('playing');
+  expect(await page.evaluate(() => (window as any).__nusumidase.state.playTicks)).toBe(0);
   expect(await page.evaluate(() => (window as any).__nusumidase.state.matchId)).not.toBe(initial.matchId);
   expect(await page.evaluate(() => (window as any).__nusumidase.controls.sample().fire)).toBe(false);
   expect(errors).toEqual([]);
@@ -158,13 +158,11 @@ test('twenty retry results remain bounded, terminal identities survive reload an
     ids.add(id);
     if (index < 20) {
       await page.locator('#retry').click();
-      await page.evaluate(() => (window as any).__nusumidase.step(180));
     }
   }
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('nusumidase-records-v1')!).latest.length)).toBe(20);
   const completedRaw = await page.evaluate(() => localStorage.getItem('nusumidase-records-v1'));
   await page.locator('#retry').click();
-  await page.evaluate(() => (window as any).__nusumidase.step(180));
   await page.reload();
   await expect(page.locator('#home')).toBeVisible();
   await expect(page.locator('#start')).toBeEnabled();
@@ -230,6 +228,55 @@ test('the core remains at its death point past thirty seconds and one return win
   await expect(page.locator('#result-title')).toHaveText('勝利');
   await expect(page.locator('#result-reason')).toHaveText('先に1個のコアを持ち帰って決着');
   await expect(page.locator('#result-captures')).toHaveText('1 — 0');
+  expect(errors).toEqual([]);
+});
+
+test('player, ally and enemy cores stay visibly at each death point and can be picked up again there', async ({ page }) => {
+  const errors = await openReview(page);
+  await startFlight(page);
+  for (const carrierIndex of [0, 1, 5]) {
+    const dropped = await page.evaluate(async index => {
+      const h = (window as any).__nusumidase; h.home(); h.begin();
+      const state = h.state, carrier = state.slots[index], team = carrier.team === 'friendly' ? 'enemy' : 'friendly';
+      const { aircraftRef } = await import('/src/respawn.ts');
+      for (const plane of state.slots) if (plane !== carrier) plane.protectionUntilPlayTick = 10000;
+      carrier.position.set(0, 400, 600); carrier.previous.copy(carrier.position);
+      state.flags[team] = { ...state.flags[team], state: 'carried', carrier: aircraftRef(state, carrier) };
+      if (!h.queueDamage({ matchId: state.matchId, roundEpoch: state.roundEpoch, tick: state.tick + 1,
+        eventSeq: 90001, target: aircraftRef(state, carrier), amount: 80, cause: 'bullet' })) throw new Error('Death event rejected');
+      h.step();
+      return { team, point: carrier.position.toArray(), state: state.flags[team].state };
+    }, carrierIndex);
+    expect(dropped.state).toBe('dropped');
+    await expect(page.locator(`#${dropped.team}-flag`)).toHaveText('撃破地点に留まる');
+    await expect.poll(() => page.evaluate(team => {
+      const flags = (window as any).__nusumidase.scene.diagnostics().flags;
+      return { visible: flags.visibleCores, position: flags.corePositions[team] };
+    }, dropped.team)).toEqual({ visible: 2, position: dropped.point });
+    const secondDrop = await page.evaluate(async ({ team, point, carrierIndex }) => {
+      const h = (window as any).__nusumidase, state = h.state;
+      const { aircraftRef } = await import('/src/respawn.ts');
+      const original = state.slots[carrierIndex], owner = state.slots.find((plane: any) => plane.team === team);
+      owner.protectionUntilPlayTick = 0; owner.position.fromArray(point); owner.previous.copy(owner.position);
+      h.step();
+      if (state.flags[team].state !== 'dropped') throw new Error('Owner contact reset the core');
+      owner.position.set(1200, 500, -900); owner.previous.copy(owner.position);
+      const picker = state.slots.find((plane: any) => plane.team === original.team && plane !== original);
+      picker.protectionUntilPlayTick = 0; picker.position.fromArray(point); picker.previous.copy(picker.position);
+      h.step();
+      if (state.flags[team].state !== 'carried' || state.flags[team].carrier.slotId !== picker.slotId) throw new Error('Pickup at death point failed');
+      picker.position.set(300, 450, 700); picker.previous.copy(picker.position);
+      if (!h.queueDamage({ matchId: state.matchId, roundEpoch: state.roundEpoch, tick: state.tick + 1,
+        eventSeq: 90002, target: aircraftRef(state, picker), amount: 80, cause: 'bullet' })) throw new Error('Second death event rejected');
+      h.step();
+      return { point: picker.position.toArray(), state: state.flags[team].state };
+    }, { ...dropped, carrierIndex });
+    expect(secondDrop.state).toBe('dropped'); expect(secondDrop.point).not.toEqual(dropped.point);
+    await expect.poll(() => page.evaluate(team => {
+      const flags = (window as any).__nusumidase.scene.diagnostics().flags;
+      return { visible: flags.visibleCores, position: flags.corePositions[team] };
+    }, dropped.team)).toEqual({ visible: 2, position: secondDrop.point });
+  }
   expect(errors).toEqual([]);
 });
 

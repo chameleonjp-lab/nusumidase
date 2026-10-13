@@ -2,7 +2,7 @@ import type { Quaternion, Vector3 } from 'three';
 
 export type Team = 'friendly' | 'enemy';
 export type GameMode = 'normal' | 'easy';
-export type MatchPhase = 'ready' | 'countdown' | 'playing' | 'ended';
+export type MatchPhase = 'ready' | 'playing' | 'ended';
 export type AIRole = 'attacker' | 'defender' | 'escort' | 'recover' | 'return' | 'wait';
 export type AIPhase = 'approach' | 'attack' | 'extend';
 export interface AircraftRef { matchId: string; roundEpoch: number; team: Team; slotId: number; generation: number; }
