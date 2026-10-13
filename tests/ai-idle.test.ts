@@ -10,7 +10,7 @@ test('20 fixed-seed idle matches reach a finite result within twelve effective m
   let captures = 0, pickups = 0;
   for (let seed = 1; seed <= 20; seed++) {
     const state = createGame(seed, seed % 2 ? 'normal' : 'easy'); startGame(state);
-    // Countdown and at most four score resets add a finite 900 non-playing ticks.
+    // Only the initial three-second countdown adds non-playing ticks.
     for (let steps = 0; steps < MATCH_PLAY_TICKS + 1000 && state.phase !== 'ended'; steps++) {
       const before = state.playTicks; stepFixed(state, neutral);
       assert.notEqual(state.phase, 'paused', `seed=${seed}, tick=${state.tick}, reason=${state.pauseReason}`);
@@ -25,7 +25,8 @@ test('20 fixed-seed idle matches reach a finite result within twelve effective m
     assert.ok(state.result && Object.isFrozen(state.result));
     assert.ok(state.result.playTicks <= MATCH_PLAY_TICKS);
     assert.ok(state.slots.length === 10 && state.bullets.length <= 1024);
-    assert.ok(state.scores.friendly <= 3 && state.scores.enemy <= 3);
+    assert.ok(state.scores.friendly <= 1 && state.scores.enemy <= 1);
+    assert.equal(state.roundEpoch, 0);
     const result = state.result; stepFixed(state, neutral); assert.equal(state.result, result);
   }
   // The no-input runs also prove that the legal flight planner can pick up

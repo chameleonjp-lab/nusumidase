@@ -1,5 +1,7 @@
 # ヌスミダセ 実装計画書
 
+2026-10-13追補: コアは撃破位置に留まり、時間による自動帰還はしない。敵コアを先に1個持ち帰った側が、自旗の所在に関係なく勝利する。ルール版は `nusumidase-ctf-v2` とする。
+
 主継承元は [カイセン](https://github.com/chameleonjp-lab/kaisen)、固定baselineは [3d751051dc6212482a129e8da596ddd349b2f9f5](https://github.com/chameleonjp-lab/kaisen/tree/3d751051dc6212482a129e8da596ddd349b2f9f5)。機体・飛行の照合元は [ファイトフライト c2b313d37875b93458032d98636fcf5b5d30a138](https://github.com/chameleonjp-lab/faitofuraito/tree/c2b313d37875b93458032d98636fcf5b5d30a138)。元作の見た目と操縦を保持したまま、二基地の空中旗取りを新しい試合stateとして接続する。
 
 作成日: 2026-10-05。計画v1。[要件仕様計画書](REQUIREMENTS.md) を仕様の正本とする。対象は [chameleonjp-lab/nusumidase](https://github.com/chameleonjp-lab/nusumidase)。本PRは文書2本の追加のみ。ゲーム本体、依存package、CI、デプロイ設定、README、既存ファイルを書き換えない。以下のファイル分割・試験は後続実装で行う計画であり、本PRの実施結果ではない。
@@ -32,7 +34,7 @@ coreの取得元固定commit/pathは接続する後続実装PRで確定し、こ
 
 本作UIを組む前に固定Kaisenを同一環境で起動し、8画面・機体・カメラの実画像と状態fixtureを確保する。browser名/完全version、OS、font、viewport、DPR、文字倍率、seed、mode、状態、tick、source commit、capture時刻をmanifestへ記録する。元作と本作で異なる時刻や機体姿勢の画像を「同条件diff」としない。
 
-画面は home / normal flight / easy flight / pause / normal touch settings / easy touch settings / keyboard settings / result の8つ。ゲーム固有結果を機械的に同じ数値へできない場合は固定の意味対応fixtureを使い、その違いを明示する。追加でルール、設定保存失敗、携行、自旗不在、drop、復活待ち、roundReset、time drawを撮る。機体は正面/側面/背面/旋回、同姿勢のcamera/照準投影を比較する。これは実装時に必須で、文書PR時点では未撮影。
+画面は home / normal flight / easy flight / pause / normal touch settings / easy touch settings / keyboard settings / result の8つ。ゲーム固有結果を機械的に同じ数値へできない場合は固定の意味対応fixtureを使い、その違いを明示する。追加でルール、設定保存失敗、携行、自旗不在、drop、復活待ち、1個先取で終了、time drawを撮る。機体は正面/側面/背面/旋回、同姿勢のcamera/照準投影を比較する。これは実装時に必須で、文書PR時点では未撮影。
 
 ## 3 実装の責務分割
 
@@ -59,7 +61,7 @@ coreの取得元固定commit/pathは接続する後続実装PRで確定し、こ
 
 - Match: matchId, roundEpoch, tick, playTicks, phase, phaseTicks, pausedFrom, mode, rulesVersion, seed, slots[10], flags[2], captures[2], respawns, immutable result
 - Slot: team, slotId, generation, alive, aircraft, respawnReservation?, protectedUntilPlayTick。aliveとreservationの同時存在禁止
-- Flag: flagId, homeTeam, epoch, revision, tagged state。carrierはmatch/epoch/team/slot/generationの完全な機体世代参照、dropは有限位置とreturnDue
+- Flag: flagId, homeTeam, epoch, revision, tagged state。carrierはmatch/epoch/team/slot/generationの完全な機体世代参照、dropは撃破時の有限固定位置とdroppedAtPlayTick（returnDueなし）
 - InputFrame: ownership revision, turn/climb/fire/loop/throttle, source revision, oneShot pending ID。sampleと消費を別にし、step完了時に消費ack
 - Event: match/epoch/tick/sequence, kind, source/target generation, expected flag revision, payload。重複処理はstateを書き換えない
 - Result: completedMatchId, rulesVersion, mode, outcome, captures, playTicks, bounded statistics。live stateへの参照を保持しない
@@ -81,7 +83,7 @@ simulationとinputの再現traceは数値/ID/seedのみとし、device識別や�
 - 10slot、2flag tagged union、rule config、60Hz時計、match/epoch/generation IDを設計
 - pickup/drop/return/captureを第5.3節の順序で純粋reducerとして接続。snapshot差分で単一owner保存則をassert
 - 境界値、両旗奪取、自旗不在、同tickreturn、時間切れ、二重候補異常をfixture化
-- 終了: FLAG/MATCHの単体property試験が通り、renderなしで3点/12分/引分まで再現可能
+- 終了: FLAG/MATCHの単体property試験が通り、renderなしで1個先取/12分未回収の引分/完全同時の引分まで再現可能
 
 ### P2 既存飛行と武器の接続
 
@@ -92,9 +94,9 @@ simulationとinputの再現traceは数値/ID/seedのみとし、device識別や�
 
 ### P3 基地と旗の到達性
 
-- 海上空域、二つの非衝突リング基地、取得/回収球、swept接近、合法drop投影を実装
-- 65/110/141m/s、両mode、両陣営、各drop境界から基地へ、基地から敵基地へ、待機円から回収へ実flight traceを作る
-- 30秒帰還、due tick接触抑制、生成直後drop取得抑制、不正位置復旧を試験
+- 海上空域、二つの非衝突リング基地、取得/回収球、swept接近、撃破位置そのままのdropを実装
+- 65/110/141m/s、両mode、両陣営、代表的なdrop地点から基地へ、基地から敵基地へ、待機円から回収へ実flight traceを作る
+- 30秒を超えても撃破地点に残ること、生成直後drop取得抑制、非有限位置の既存復旧を試験
 - 終了: 中心点だけでなく最小旋回/高度変化を含む合法飛行が成立。敵機なしのroute試験で全対象地点を180秒以内に訪問できる（最適routeの保証ではない）
 
 ### P4 復活と4役AI
@@ -114,7 +116,7 @@ simulationとinputの再現traceは数値/ID/seedのみとし、device識別や�
 
 ### P6 HUDと結果
 
-- Kaisenの既存画面/styleに旗状態、回収数、持帰り条件、残時間、復活、roundResetの表示だけを追加
+- Kaisenの既存画面/styleに旗状態、回収数、持帰り条件、残時間、復活、1個先取の結果表示だけを追加
 - marker/aria-live/音は状態変化を通知。旗を撃つ自動照準や機体を隠すHUDを作らない
 - 結果をimmutable化し記録を1回保存。20件上限とbest、未完試合reload時中断を実装
 - 終了: ホーム→出撃→pause→設定→破棄/保存→再開→得点reset→結果→retry、保存失敗/背景復帰の全経路で整合
@@ -138,17 +140,17 @@ simulationとinputの再現traceは数値/ID/seedのみとし、device識別や�
 | T03 FLAG-01 | 敵2機同tick同点距離、配列順を逆転 | fraction→距離→slot順で同一の1owner |
 | T04 FLAG-01 | dropへ自/敵同tick接近、先に敵配列を走査 | 自軍帰還優先、同tick敵再取得なし |
 | T05 FLAG-01 | carrier撃墜地点へ別機が同tick存在 | そのtickはdropのみ、次tickからpickup可能 |
-| T06 FLAG-01 | drop1799tick/1800tick、dueと接触同時 | 前は残留/接触可、dueは帰還優先、そのtick再取得なし |
-| T07 WORLD-02 | 海面・場外・上限・NaN drop | 合法浮遊点へclamp、非有限は理由付きhome、無得点 |
-| T08 FLAG-02 | 敵旗持帰り、自旗carriedまたはdropped | 0点で携行維持、必要な奪還をHUD表示 |
-| T09 FLAG-02 | 回収球内待機、自旗が今tick帰還 | 今tick0点、次tick生存/自旗homeなら1点、再侵入不要 |
-| T10 FLAG-02 | 到着tickに自旗被奪取 | 得点不可、旗owner一意 |
+| T06 FLAG-01 | drop1799tick/1800tick/長時間、再取得 | 位置を維持、自動帰還なし。接近で再取得 |
+| T07 WORLD-02 | 海面・場外・上限・NaN drop | 有限なら撃破位置を維持、非有限は理由付きhome、無得点 |
+| T08 FLAG-02 | 敵旗持帰り、自旗carriedまたはdropped | 自旗の所在に関係なく1個で勝利、奪還必須表示なし |
+| T09 FLAG-02 | 回収球内待機、自旗が今tick帰還 | 自旗の帰還を待たず、持帰り条件を満たせばそのtickに1点で終了 |
+| T10 FLAG-02 | 到着tickに自旗被奪取 | 持帰り可能、旗owner一意 |
 | T11 FLAG-03 | 到着tick致死/敵carrier双方致死 | 致死carrierはdrop、両者相打ち、得点なし |
-| T12 FLAG-03 | 双方が敵旗を保持し自基地へ到着 | 双方0点。異常な二得点候補注入なら安全pause・記録対象外 |
+| T12 FLAG-03 | 双方が敵旗を保持し自基地へ到着 | 交差fractionが早い側の勝利、同fractionは引分。重複候補注入なら安全pause・記録対象外 |
 | T13 FLAG-04 | kill/drop/capture同ID再配送、旧revision、旧epoch | 二重加点/生成/予約なし、旧stateへ戻らない |
-| T14 FLAG-04 | 得点直後に旧弾/respawn callback配送 | score/playTicks/累計統計を保持、新round180tick無戦闘、旧event無効 |
-| T15 MATCH-01 | 2対2で3点目、captureを重複再入 | 一方3点でresult1つ、以降不変、保存1回 |
-| T16 MATCH-01 | playTicks43199→43200と得点同tick | 得点を解決後、3点優先、未到達なら回収差/同点引分 |
+| T14 FLAG-04 | 得点直後に旧弾/respawn callback配送 | 試合終了。result/score/playTicks/累計統計を保持し旧event無効 |
+| T15 MATCH-01 | 0対0で最初の回収、captureを重複再入 | 一方1点でresult1つ、以降不変、保存1回 |
+| T16 MATCH-01 | playTicks43199→43200と得点同tick | 得点を解決後、最初の回収を優先、未回収なら引分 |
 | T17 MATCH-01 | pause60秒/非表示、drop/復活/再装填途中 | 全timer/phase不変、戻っても自動再開/入力再生なし |
 | T18 MATCH-02 | fixed step0/5frame、0.25秒超backlog | 0stepではedge残存、最大5、超過はpause・無い時間をsimulateしない |
 | T19 LIFE-01 | 同機へ同tick複数致死、479/480tick | 予約1件、479復活なし、480で世代更新1回 |

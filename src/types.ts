@@ -2,7 +2,7 @@ import type { Quaternion, Vector3 } from 'three';
 
 export type Team = 'friendly' | 'enemy';
 export type GameMode = 'normal' | 'easy';
-export type MatchPhase = 'ready' | 'countdown' | 'playing' | 'roundReset' | 'ended';
+export type MatchPhase = 'ready' | 'countdown' | 'playing' | 'ended';
 export type AIRole = 'attacker' | 'defender' | 'escort' | 'recover' | 'return' | 'wait';
 export type AIPhase = 'approach' | 'attack' | 'extend';
 export interface AircraftRef { matchId: string; roundEpoch: number; team: Team; slotId: number; generation: number; }
@@ -22,7 +22,7 @@ export type CombatTarget = Aircraft;
 interface FlagBase { flagId: string; homeTeam: Team; roundEpoch: number; revision: number; }
 export type Flag = (FlagBase & { state: 'atHome' })
   | (FlagBase & { state: 'carried'; carrier: AircraftRef })
-  | (FlagBase & { state: 'dropped'; position: Vector3; droppedAtPlayTick: number; returnDuePlayTick: number });
+  | (FlagBase & { state: 'dropped'; position: Vector3; droppedAtPlayTick: number });
 export interface Bullet {
   id: number; matchId: string; roundEpoch: number; owner: number; ownerRef: AircraftRef; team: Team;
   position: Vector3; previous: Vector3; velocity: Vector3; life: number; damage: number; kind: 'mg' | 'cannon';
