@@ -25,5 +25,16 @@ jobs:
       - run: npm run build
       - name: Install browsers for bounded camera checks
         run: npx playwright install --with-deps chromium webkit
+      - name: Historical WebKit timing diagnostic (non-gating, original camera contract)
+        continue-on-error: true
+        run: |
+          baseline="$RUNNER_TEMP/nusumidase-camera-baseline"
+          git fetch --no-tags origin ae3e3cdd0fd8a0bcad25ed313e8e1cc58ddee6e3
+          git worktree add --detach "$baseline" ae3e3cdd0fd8a0bcad25ed313e8e1cc58ddee6e3
+          cp "$baseline/browser-tests/game.spec.ts" "$baseline/browser-tests/game.spec.ts.original"
+          cp browser-tests/game.spec.ts "$baseline/browser-tests/game.spec.ts"
+          ln -s "$GITHUB_WORKSPACE/node_modules" "$baseline/node_modules"
+          cd "$baseline"
+          CAMERA_CONTROLS_ONLY=1 node node_modules/playwright/cli.js test browser-tests/game.spec.ts --project=webkit --grep "@camera-controls live (normal (393x852|568x320|1280x720)|easy 1280x720)" --reporter=line --output=camera-baseline-results
       - name: Focused live camera checks without artifact storage
         run: CAMERA_CONTROLS_ONLY=1 node node_modules/playwright/cli.js test browser-tests/game.spec.ts --grep "@camera-controls" --reporter=line --output=camera-controls-results

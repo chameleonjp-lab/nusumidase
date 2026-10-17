@@ -343,7 +343,50 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
   await page.evaluate(async()=>{
     const view=await import('/src/flight-view.ts'),gun=await import('/src/gun-sight.ts');
     const h=(window as any).__nusumidase,scene=h.scene,original=scene.render;
-    const observation={sequence:0,samples:[] as any[],readyFrame:null as any,maxObservationMs:0,maxOriginalRenderMs:0,restore:()=>{scene.render=original;}};
+    const originalPoll=scene.pollRender,originalWebGL=scene.renderer.render,originalOverlay=scene.drawOverlay;
+    const gl=scene.renderer.getContext(),debugRenderer=gl.getExtension('WEBGL_debug_renderer_info');
+    const observation={sequence:0,samples:[] as any[],readyFrame:null as any,frameSamples:[] as any[],firstPause:null as any,
+      backend:{vendor:gl.getParameter(gl.VENDOR),renderer:gl.getParameter(gl.RENDERER),
+        unmaskedRenderer:debugRenderer?gl.getParameter(debugRenderer.UNMASKED_RENDERER_WEBGL):null},
+      maxObservationMs:0,maxOriginalRenderMs:0,maxWebGLMs:0,maxOverlayMs:0,
+      restore:()=>{scene.render=original;scene.pollRender=originalPoll;scene.renderer.render=originalWebGL;scene.drawOverlay=originalOverlay;}};
+    let lastFrameTime:number|null=null,currentFrame:any=null;
+    const capturePause=()=>{
+      if(h.state.phase!=='paused'||observation.firstPause!==null)return;
+      const metrics=h.metrics;
+      observation.firstPause={tick:h.state.tick,reason:h.state.pauseReason,queue:scene.diagnostics().queue,
+        frames:observation.frameSamples.map(frame=>({...frame})),
+        frameTimes:metrics.frameTimes.slice(-32),updateTimes:metrics.updateTimes.slice(-32)};
+    };
+    // The explicit timestamp identifies the product's rAF poll. The nested
+    // render() poll has no argument and must not count as another frame.
+    // rawRafDeltaMs is not advance(dt): begin/setScreen reset lastFrame to 0,
+    // so the first playing frame has effective dt=0 despite a nonzero raw gap.
+    scene.pollRender=function(...args:any[]){
+      // Capture even when the previous frame paused and returned before render,
+      // including a failed/stalled fence or a pause while submission is pending.
+      if(typeof args[0]==='number')capturePause();
+      const before=performance.now(),result=originalPoll.apply(this,args);
+      if(typeof args[0]==='number'){
+        currentFrame={nowMs:args[0],rawRafDeltaMs:lastFrameTime===null?null:args[0]-lastFrameTime,
+          tickBefore:h.state.tick,phaseBefore:h.state.phase,matchId:h.state.matchId,screen:h.screen,status:result,pollMs:performance.now()-before};
+        lastFrameTime=args[0];observation.frameSamples.push(currentFrame);
+        if(observation.frameSamples.length>32)observation.frameSamples.shift();
+      }
+      return result;
+    };
+    scene.renderer.render=function(...args:any[]){
+      const before=performance.now();try{return originalWebGL.apply(this,args);}finally{
+        const ms=performance.now()-before;observation.maxWebGLMs=Math.max(observation.maxWebGLMs,ms);
+        if(currentFrame)currentFrame.webGLMs=ms;
+      }
+    };
+    scene.drawOverlay=function(...args:any[]){
+      const before=performance.now();try{return originalOverlay.apply(this,args);}finally{
+        const ms=performance.now()-before;observation.maxOverlayMs=Math.max(observation.maxOverlayMs,ms);
+        if(currentFrame)currentFrame.overlayMs=ms;
+      }
+    };
     scene.render=function(...args:any[]){
       const observationStart=performance.now();
       const state=args[0],p={...state.player,position:state.player.position.clone(),quaternion:state.player.quaternion.clone()};
@@ -351,6 +394,8 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
       const renderStart=performance.now();
       const submitted=original.apply(this,args); // Exactly once, with untouched arguments.
       const renderEnd=performance.now();
+      if(currentFrame)Object.assign(currentFrame,{tickRendered:tick,phaseRendered:phase,renderMs:renderEnd-renderStart});
+      capturePause();
       if(submitted&&phase==='ready'&&observation.readyFrame?.matchId!==matchId){
         const diagnostics=this.diagnostics();
         const queue=diagnostics.queue;
@@ -443,7 +488,11 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
     if(!page.isClosed()){
       const evidence=await page.evaluate(()=>{
         const o=(window as any).__cameraObservation,h=(window as any).__nusumidase;
-        o.restore();return {observedFrames:o.sequence,maxObservationMs:o.maxObservationMs,maxOriginalRenderMs:o.maxOriginalRenderMs,lastSamples:o.samples.slice(-4),live:{phase:h.state.phase,tick:h.state.tick,pauseReason:h.state.pauseReason,queue:h.scene.diagnostics().queue}};
+        o.restore();const metrics=h.metrics;
+        return {observedFrames:o.sequence,maxObservationMs:o.maxObservationMs,maxOriginalRenderMs:o.maxOriginalRenderMs,
+          maxWebGLMs:o.maxWebGLMs,maxOverlayMs:o.maxOverlayMs,backend:o.backend,firstPause:o.firstPause,
+          frameSamples:o.frameSamples,frameTimes:metrics.frameTimes.slice(-32),updateTimes:metrics.updateTimes.slice(-32),
+          lastSamples:o.samples.slice(-4),live:{phase:h.state.phase,tick:h.state.tick,pauseReason:h.state.pauseReason,queue:h.scene.diagnostics().queue}};
       });
       console.log(JSON.stringify({sourceCommit:cameraSourceCommit,mode,viewport,startupReadiness,...evidence}));
     }
