@@ -25,6 +25,9 @@ jobs:
       - run: npm run build
       - name: Install browsers for bounded camera checks
         run: npx playwright install --with-deps chromium webkit
+      # Acceptance must precede reference/ablation runs to avoid their warmup.
+      - name: Focused live camera checks without artifact storage
+        run: CAMERA_CONTROLS_ONLY=1 CAMERA_RENDER_DIAGNOSTIC=none node node_modules/playwright/cli.js test browser-tests/game.spec.ts --grep "@camera-controls" --reporter=line --output=camera-controls-results
       - name: Historical WebKit timing diagnostic (non-gating, original camera contract)
         continue-on-error: true
         run: |
@@ -44,5 +47,3 @@ jobs:
             CAMERA_CONTROLS_ONLY=1 CAMERA_RENDER_DIAGNOSTIC="$variant" node node_modules/playwright/cli.js test browser-tests/game.spec.ts --project=webkit --grep "@camera-controls live normal 1280x720" --reporter=line --output="camera-render-diagnostic-results/$variant" || status=1
           done
           exit "$status"
-      - name: Focused live camera checks without artifact storage
-        run: CAMERA_CONTROLS_ONLY=1 CAMERA_RENDER_DIAGNOSTIC=none node node_modules/playwright/cli.js test browser-tests/game.spec.ts --grep "@camera-controls" --reporter=line --output=camera-controls-results
