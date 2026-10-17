@@ -100,3 +100,14 @@ test('capture failure and stale-primary mouse recovery fail neutral without clea
   assert.equal(controls.peek().steerPointer,8);assert.equal(controls.sample().turn,0);assert.equal(controls.sample().fire,true);
   controls.moveSteering(pointer(8,{pointerType:'mouse',buttons:0}));assert.equal(controls.peek().steerPointer,null);
 });
+
+test('steeringActive belongs only to steering owners, including deadzone, opposing keys and unconsumed short taps',()=>{
+  const {controls}=fixture();assert.equal(controls.sample().steeringActive,undefined);
+  controls.beginSteering(pointer(1),new ElementMock());let frame=controls.sample();assert.equal(frame.turn,0);assert.equal(frame.climb,0);assert.equal(frame.steeringActive,true);
+  controls.beginButton('fire',pointer(2));controls.beginThrottle(pointer(3,{clientY:22}));assert.equal(controls.sample().steeringActive,true);
+  controls.endPointer(pointer(1),false);frame=controls.sample();assert.equal(frame.steeringActive,undefined);assert.equal(frame.fire,true);assert.equal(frame.throttle,1);
+  controls.clear();controls.keyDown(key('ArrowLeft'));controls.keyDown(key('ArrowRight'));frame=controls.sample();assert.equal(frame.turn,0);assert.equal(frame.steeringActive,true);
+  controls.clear();controls.keyDown(key('ArrowUp'));controls.keyUp(key('ArrowUp'));const tap=controls.sample();assert.equal(tap.steeringActive,true);assert.equal(tap.climb,1);assert.deepEqual(controls.sample(),tap);
+  controls.acknowledge(tap);assert.equal(controls.sample().steeringActive,undefined);
+  controls.beginSteering(pointer(4),new ElementMock());controls.active=()=>false;assert.equal(controls.sample().steeringActive,undefined);
+});

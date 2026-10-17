@@ -11,9 +11,11 @@ permissions:
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -21,3 +23,42 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      - name: Install browsers for bounded camera checks
+        run: npx playwright install --with-deps chromium webkit
+      # Acceptance must precede reference/ablation runs to avoid their warmup.
+      - name: Focused live camera checks without artifact storage
+        run: CAMERA_CONTROLS_ONLY=1 CAMERA_RENDER_DIAGNOSTIC=none node node_modules/playwright/cli.js test browser-tests/game.spec.ts --grep "@camera-controls" --reporter=line --output=camera-controls-results
+      - name: Whole-overlay exact RGBA label equivalence without image storage
+        if: ${{ !cancelled() }}
+        run: CAMERA_LABEL_PIXELS=1 node node_modules/playwright/cli.js test browser-tests/game.spec.ts --grep "@camera-label-pixels" --reporter=line --output=camera-label-pixel-results
+      - name: Historical WebKit timing diagnostic (non-gating, original camera contract)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: |
+          baseline="$RUNNER_TEMP/nusumidase-camera-baseline"
+          git fetch --no-tags origin ae3e3cdd0fd8a0bcad25ed313e8e1cc58ddee6e3
+          git worktree add --detach "$baseline" ae3e3cdd0fd8a0bcad25ed313e8e1cc58ddee6e3
+          cp "$baseline/browser-tests/game.spec.ts" "$baseline/browser-tests/game.spec.ts.original"
+          cp browser-tests/game.spec.ts "$baseline/browser-tests/game.spec.ts"
+          ln -s "$GITHUB_WORKSPACE/node_modules" "$baseline/node_modules"
+          cd "$baseline"
+          CAMERA_CONTROLS_ONLY=1 CAMERA_RENDER_DIAGNOSTIC=none node node_modules/playwright/cli.js test browser-tests/game.spec.ts --project=webkit --grep "@camera-controls live (normal (393x852|568x320|1280x720)|easy 1280x720)" --reporter=line --output=camera-baseline-results
+      - name: Canvas and DOM HUD timing isolation (non-gating diagnosis only)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: |
+          status=0
+          for variant in full canvas-off hud-off both-off; do
+            CAMERA_CONTROLS_ONLY=1 CAMERA_RENDER_DIAGNOSTIC="$variant" node node_modules/playwright/cli.js test browser-tests/game.spec.ts --project=webkit --grep "@camera-controls live normal 1280x720" --reporter=line --output="camera-render-diagnostic-results/$variant" || status=1
+          done
+          # Runtime shadow contribution: fresh browser commands in ABBA order.
+          # Full rendering remains mandatory; these are reference-only samples.
+          for viewport in 393x852 1280x720; do
+            sample=0
+            for variant in full shadow-off shadow-off full; do
+              sample=$((sample + 1))
+              echo "Runtime shadow reference: $viewport sample=$sample variant=$variant"
+              CAMERA_CONTROLS_ONLY=1 CAMERA_RENDER_DIAGNOSTIC="$variant" node node_modules/playwright/cli.js test browser-tests/game.spec.ts --project=webkit --grep "@camera-controls live normal $viewport" --reporter=line --output="camera-render-diagnostic-results/shadow-$viewport-$sample" || status=1
+            done
+          done
+          exit "$status"
