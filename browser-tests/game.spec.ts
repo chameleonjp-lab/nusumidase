@@ -334,7 +334,7 @@ const cameraSourceCommit=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8
 // These bounded display ablations are explicitly selected only by a non-gating
 // diagnostic step. Acceptance always uses 'none' with the complete product.
 const renderDiagnostic=process.env.CAMERA_RENDER_DIAGNOSTIC??'none';
-if(!['none','full','canvas-off','hud-off','both-off'].includes(renderDiagnostic))throw new Error('Unknown render diagnostic');
+if(!['none','full','canvas-off','hud-off','both-off','shadow-off'].includes(renderDiagnostic))throw new Error('Unknown render diagnostic');
 const cameraTest = test.extend({ screenshot: 'off' as const, trace: 'off' as const });
 for (const mode of ['normal', 'easy'] as const) for (const viewport of [
   {width:393,height:852},{width:393,height:648},{width:568,height:320},{width:852,height:393},{width:1280,height:720},
@@ -413,11 +413,12 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
       if(oldDisplay)hud.style.setProperty('display',oldDisplay,oldPriority);else hud.style.removeProperty('display');
       if(!hadStyleAttribute&&!hud.getAttribute('style'))hud.removeAttribute('style');
     };
+    let restoreShadow=()=>{};
     const observation={sequence:0,samples:[] as any[],readyFrame:null as any,frameSamples:[] as any[],firstPause:null as any,
       backend:{vendor:gl.getParameter(gl.VENDOR),renderer:gl.getParameter(gl.RENDERER),
         unmaskedRenderer:debugRenderer?gl.getParameter(debugRenderer.UNMASKED_RENDERER_WEBGL):null},
       maxObservationMs:0,maxOriginalRenderMs:0,maxWebGLMs:0,maxOverlayMs:0,
-      restore:()=>{scene.render=original;scene.pollRender=originalPoll;scene.renderer.render=originalWebGL;scene.drawOverlay=originalOverlay;restoreHUD();}};
+      restore:()=>{scene.render=original;scene.pollRender=originalPoll;scene.renderer.render=originalWebGL;scene.drawOverlay=originalOverlay;try{restoreShadow();}finally{restoreHUD();}}};
     (window as any).__cameraObservation=observation;
     let lastFrameTime:number|null=null,currentFrame:any=null;
     const capturePause=()=>{
@@ -492,6 +493,25 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
       observation.maxOriginalRenderMs=Math.max(observation.maxOriginalRenderMs,renderEnd-renderStart);
       return submitted;
     };
+    if(renderDiagnostic==='shadow-off'){
+      // Runtime-only diagnostic after normal preparation. Keep every draw call;
+      // suppress just shadow blur, and restore the exact native property/state.
+      const ctx=scene.ctx as CanvasRenderingContext2D;
+      const own=Object.getOwnPropertyDescriptor(ctx,'shadowBlur');
+      let owner:object|null=ctx,descriptor:PropertyDescriptor|undefined;
+      while(owner&&!descriptor){descriptor=Object.getOwnPropertyDescriptor(owner,'shadowBlur');owner=Object.getPrototypeOf(owner);}
+      if(!descriptor?.get||!descriptor.set)throw new Error('Shadow diagnostic requires native getter and setter');
+      const get=descriptor.get,set=descriptor.set,previous=get.call(ctx);
+      let installed=false;
+      restoreShadow=()=>{
+        if(!installed)return;
+        if(own)Object.defineProperty(ctx,'shadowBlur',own);else delete (ctx as any).shadowBlur;
+        installed=false;set.call(ctx,previous);
+      };
+      Object.defineProperty(ctx,'shadowBlur',{configurable:true,enumerable:descriptor.enumerable,
+        get(){return get.call(this);},set(_value:number){set.call(this,0);}});
+      installed=true;set.call(ctx,0);
+    }
     if(hideHUD)hud.style.setProperty('display','none','important');
   },renderDiagnostic);
   const live=()=>page.evaluate(()=>{

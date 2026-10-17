@@ -48,4 +48,14 @@ jobs:
           for variant in full canvas-off hud-off both-off; do
             CAMERA_CONTROLS_ONLY=1 CAMERA_RENDER_DIAGNOSTIC="$variant" node node_modules/playwright/cli.js test browser-tests/game.spec.ts --project=webkit --grep "@camera-controls live normal 1280x720" --reporter=line --output="camera-render-diagnostic-results/$variant" || status=1
           done
+          # Runtime shadow contribution: fresh browser commands in ABBA order.
+          # Full rendering remains mandatory; these are reference-only samples.
+          for viewport in 393x852 1280x720; do
+            sample=0
+            for variant in full shadow-off shadow-off full; do
+              sample=$((sample + 1))
+              echo "Runtime shadow reference: $viewport sample=$sample variant=$variant"
+              CAMERA_CONTROLS_ONLY=1 CAMERA_RENDER_DIAGNOSTIC="$variant" node node_modules/playwright/cli.js test browser-tests/game.spec.ts --project=webkit --grep "@camera-controls live normal $viewport" --reporter=line --output="camera-render-diagnostic-results/shadow-$viewport-$sample" || status=1
+            done
+          done
           exit "$status"
