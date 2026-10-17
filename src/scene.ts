@@ -71,6 +71,8 @@ export class NusumidaseScene {
   private visualTime = 0;
   private width = 1;
   private height = 1;
+  private overlayVisible = false;
+  private overlayRevision = 0;
   private prepared = false;
   private disposed = false;
 
@@ -128,6 +130,7 @@ export class NusumidaseScene {
     this.renderer.setSize(rect.width, rect.height, false);
     this.camera.aspect = rect.width / rect.height; this.camera.updateProjectionMatrix();
     this.overlay.width = Math.round(rect.width); this.overlay.height = Math.round(rect.height);
+    this.overlayRevision++;
     this.aircraftTracers.coreMaterial.resolution.set(rect.width, rect.height);
     this.aircraftTracers.outlineMaterial.resolution.set(rect.width, rect.height);
   }
@@ -167,23 +170,61 @@ export class NusumidaseScene {
       this.particleGeometry.setDrawRange(0, 0); this.aircraftTracers.update([]);
     }
     if (this.disposed) return;
-    // The visible completion barrier includes a clean frame with live culling
-    // and no priming tracers/particles before preparation is acknowledged.
-    this.renderer.render(this.scene, this.camera);
     const preparationStarted = performance.now();
-    this.renderQueue.submit(preparationStarted);
     while (!this.disposed) {
-      const status = this.renderQueue.poll(performance.now());
-      if (status === 'ready') break;
-      // Loading/recovery freezes simulation and may upload an entire new GPU
-      // pool. Keep the runtime's 1s stall rule, but allow this initial barrier
-      // up to 30s without submitting another frame or resetting its fence.
-      if (status === 'failed' || performance.now() - preparationStarted > 30000) {
-        throw new Error(`Initial GPU frame failed: ${JSON.stringify(this.renderQueue.diagnostics(performance.now()))}`);
+      const overlayRevision = this.overlayRevision;
+      this.prepareOverlay();
+      if (performance.now() - preparationStarted > 30000) throw new Error('Initial Canvas2D preparation exceeded 30s');
+      // A clean frame follows both immutable-pool and Canvas2D preparation.
+      // Its fence covers WebGL only; Canvas2D readback is completed above.
+      this.renderer.render(this.scene, this.camera);
+      this.renderQueue.submit(performance.now());
+      while (!this.disposed) {
+        const status = this.renderQueue.poll(performance.now());
+        if (status === 'ready') break;
+        // Loading/recovery may upload an entire new pool. Runtime protection
+        // stays unchanged; pending GPU polls retain the post-compile 30s check.
+        if (status === 'failed' || performance.now() - preparationStarted > 30000) {
+          throw new Error(`Initial GPU frame failed: ${JSON.stringify(this.renderQueue.diagnostics(performance.now()))}`);
+        }
+        await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
       }
-      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+      if (this.disposed) return;
+      if (overlayRevision === this.overlayRevision) break;
+      // resize() resets the Canvas2D backing store even at the same size.
+      // Prepare the new store and fence its clean frame before enabling Start.
+      if (performance.now() - preparationStarted > 30000) throw new Error('Initial canvas size did not stabilize');
     }
     if (!this.disposed) { this.prepared = true; this.renderQueue.reset(); }
+  }
+
+  private prepareOverlay(): void {
+    const state = this.current;
+    if (!state || this.overlay.width <= 0 || this.overlay.height <= 0) return;
+    const camera = this.camera, c = this.ctx;
+    const position = camera.position.clone(), quaternion = camera.quaternion.clone();
+    const matrix = camera.matrix.clone(), world = camera.matrixWorld.clone(), inverse = camera.matrixWorldInverse.clone();
+    const needsUpdate = camera.matrixWorldNeedsUpdate, visible = this.overlayVisible;
+    c.save();
+    try {
+      // Use the real initial HUD paths without advancing or replacing the game.
+      // Synchronous readback drains deferred 2D raster work, not DOM compositing.
+      // The temporary pixels are discarded; no image/cache is retained.
+      for (const mode of ['normal', 'easy'] as const) {
+        const view = { ...state, mode };
+        getFlightCameraPose(view.player, mode, camera.position, camera.quaternion);
+        camera.updateMatrixWorld();
+        this.drawOverlay(view, true);
+        c.getImageData(0, 0, this.overlay.width, this.overlay.height);
+      }
+    } finally {
+      camera.position.copy(position); camera.quaternion.copy(quaternion);
+      camera.matrix.copy(matrix); camera.matrixWorld.copy(world); camera.matrixWorldInverse.copy(inverse);
+      camera.matrixWorldNeedsUpdate = needsUpdate;
+      // No await exposes the priming image. Recovery redraws the last successful
+      // HUD, including a paused/dead player's frozen camera, rather than clearing it.
+      try { this.drawOverlay(state, visible); } finally { c.restore(); }
+    }
   }
 
   pollRender(now = performance.now()) { return this.prepared ? this.renderQueue.poll(now) : 'ready'; }
@@ -273,7 +314,7 @@ export class NusumidaseScene {
     });
     this.particleGeometry.setDrawRange(0, this.particles.length);
     for (const attribute of Object.values(this.particleGeometry.attributes)) attribute.needsUpdate = true;
-    this.renderer.render(this.scene, this.camera); this.drawOverlay(state, showHUD);
+    this.renderer.render(this.scene, this.camera); this.drawOverlay(state, showHUD); this.overlayVisible = showHUD;
     if (this.prepared) this.renderQueue.submit(performance.now());
     return true;
   }

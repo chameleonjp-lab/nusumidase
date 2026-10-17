@@ -347,3 +347,93 @@ test('HUD rounding, notification expiry and restoration keep their original tran
   const calls=h.audio.syncCalls;h.sync(true);assert.equal(h.audio.syncCalls,calls+1);assert.deepEqual(h.writes,[]);
   state.phase='playing';h.context.screen='playing';h.sync();assert.equal(h.audio.active,true);assert.equal(h.audio.syncCalls,calls+2);
 });
+
+async function overlayPreparationHarness(state: GameState, visible: boolean) {
+  const { NusumidaseScene } = await import('../src/scene');
+  const { PerspectiveCamera } = await import('three');
+  const { getFlightCameraPose } = await import('../src/flight-view');
+  const scene:any=Object.create(NusumidaseScene.prototype), camera=new PerspectiveCamera(64,393/852,.5,22000);
+  getFlightCameraPose(state.player,state.mode,camera.position,camera.quaternion);camera.updateMatrixWorld();
+  const style:Record<string,unknown>={},stack:Record<string,unknown>[]=[];
+  const raster:any[][]=[],reads:any[]=[];let commands:any[]=[],failRead=0,readCount=0,failRedraw=false;
+  const methods:Record<string,any>={
+    clearRect:(...args:any[])=>{commands=[['clearRect',...args]];},
+    save:()=>{stack.push({...style});commands.push(['save']);},
+    restore:()=>{const saved=stack.pop();assert.ok(saved);for(const key of Object.keys(style))delete style[key];Object.assign(style,saved);commands.push(['restore']);},
+    getImageData:(...args:any[])=>{reads.push({args,commands:[...commands],pose:[...camera.position.toArray(),...camera.quaternion.toArray()]});if(++readCount===failRead)throw new Error('readback failed');return {data:new Uint8ClampedArray(0)};},
+  };
+  for(const name of ['beginPath','arc','moveTo','lineTo','stroke','fillRect','fillText','closePath','translate','fill','rect'])methods[name]=(...args:any[])=>commands.push([name,...args]);
+  const ctx=new Proxy(methods,{get:(target,key:string)=>key in target?target[key]:style[key],set:(_target,key:string,value)=>{style[key]=value;commands.push(['set',key,value]);return true;}});
+  Object.assign(scene,{camera,ctx,current:state,overlay:{width:393,height:852},width:393,height:852,overlayVisible:visible,overlayRevision:0,disposed:false,prepared:false});
+  const draw=scene.drawOverlay;
+  scene.drawOverlay=function(view:GameState,show:boolean){if(failRedraw&&view===state)throw new Error('redraw failed');const result=draw.call(this,view,show);raster.push([...commands]);return result;};
+  scene.drawOverlay(state,visible);
+  const snapshot=()=>JSON.stringify({position:camera.position.toArray(),quaternion:camera.quaternion.toArray(),matrix:camera.matrix.toArray(),world:camera.matrixWorld.toArray(),inverse:camera.matrixWorldInverse.toArray(),needsUpdate:camera.matrixWorldNeedsUpdate});
+  return {scene,camera,ctx,style,stack,raster,reads,snapshot,
+    failRead:(n:number)=>{failRead=n;},failRedraw:()=>{failRedraw=true;},getReadCount:()=>readCount};
+}
+
+test('Canvas2D preparation uses both real HUD paths and restores blank or paused display and exact camera',async()=>{
+  const { getFlightCameraPose }=await import('../src/flight-view');
+  for(const mode of ['normal','easy'] as const)for(const visible of [false,true])for(const dead of [false,true]){
+    const state=createGame(5,mode);if(visible){startGame(state);pauseGame(state);}
+    if(dead){state.player.lifecycle='respawnPending';state.player.health=0;state.player.respawnDuePlayTick=480;}
+    const h=await overlayPreparationHarness(state,visible);
+    // A restored/dead view may intentionally differ from the current plane pose.
+    h.camera.position.add(new Vector3(2,3,4));h.camera.rotateZ(.17);h.camera.updateMatrixWorld();
+    h.scene.drawOverlay(state,visible);const beforePixels=h.raster.at(-1),beforeCamera=h.snapshot(),beforeStyle={...h.style},beforeState=JSON.stringify(state);
+    h.scene.prepareOverlay();
+    assert.equal(h.reads.length,2);assert.deepEqual(h.reads.map(r=>r.args),[[0,0,393,852],[0,0,393,852]]);
+    for(const [i,warmMode] of (['normal','easy'] as const).entries()){
+      const position=state.player.position.clone(),quaternion=state.player.quaternion.clone();getFlightCameraPose(state.player,warmMode,position,quaternion);
+      assert.deepEqual(h.reads[i].pose,[...position.toArray(),...quaternion.toArray()]);
+      assert.ok(h.reads[i].commands.some((command:any[])=>command[0]==='fillText'));
+    }
+    assert.equal(h.snapshot(),beforeCamera);assert.deepEqual(h.raster.at(-1),beforePixels);assert.deepEqual(h.style,beforeStyle);assert.equal(h.stack.length,0);
+    assert.equal(JSON.stringify(state),beforeState);assert.equal(h.scene.current,state);assert.equal(h.scene.overlayVisible,visible);assert.equal(h.scene.prepared,false);
+  }
+});
+
+test('Canvas2D readback and redraw failures propagate while restoring camera/context and avoiding readiness',async()=>{
+  for(const visible of [false,true])for(const failAt of [1,2]){
+    const state=playing();pauseGame(state);const h=await overlayPreparationHarness(state,visible);
+    const pixels=h.raster.at(-1),camera=h.snapshot(),style={...h.style},before=JSON.stringify(state);h.failRead(failAt);
+    assert.throws(()=>h.scene.prepareOverlay(),/readback failed/);
+    assert.equal(h.snapshot(),camera);assert.deepEqual(h.raster.at(-1),pixels);assert.deepEqual(h.style,style);assert.equal(h.stack.length,0);
+    assert.equal(JSON.stringify(state),before);assert.equal(h.scene.prepared,false);
+  }
+  const h=await overlayPreparationHarness(playing(),true),camera=h.snapshot(),style={...h.style};h.failRead(1);h.failRedraw();
+  assert.throws(()=>h.scene.prepareOverlay(),/redraw failed/);assert.equal(h.snapshot(),camera);assert.deepEqual(h.style,style);assert.equal(h.stack.length,0);assert.equal(h.scene.prepared,false);
+});
+
+test('preparation warms the current backing store after compile/queued resize and awaits every clean GPU fence',async()=>{
+  const originalRAF=Object.getOwnPropertyDescriptor(globalThis,'requestAnimationFrame');
+  try{
+    for(const resizeStage of ['none','compile','pending','same-size','read-failure','fence-failure','disposed'] as const){
+      const state=playing();pauseGame(state);const h=await overlayPreparationHarness(state,true),s=h.scene,events:string[]=[];
+      let rect={width:393,height:852},submissions=0,polls=0,frames=0;
+      s.canvas={getBoundingClientRect:()=>rect};s.planes=new Map();s.flags={root:{visible:false}};s.scene={traverse:()=>{}};
+      s.particlePositions=new Float32Array(3);s.particleColors=new Float32Array(3);s.particleSizes=new Float32Array(1);s.particleOpacity=new Float32Array(1);
+      s.particleGeometry={attributes:{},setDrawRange:()=>{}};
+      s.aircraftTracers={prime:()=>{},update:()=>{},coreMaterial:{resolution:{set:()=>{}}},outlineMaterial:{resolution:{set:()=>{}}}};
+      s.renderer={compileAsync:async()=>{if(resizeStage==='compile'){rect={width:568,height:320};s.resize();}},render:()=>events.push('render'),setSize:()=>{}};
+      s.renderQueue={submit:()=>{assert.equal(s.prepared,false);submissions++;events.push('submit');polls=0;},poll:()=>resizeStage==='fence-failure'?'failed':++polls===1?'pending':'ready',reset:()=>events.push('reset'),diagnostics:()=>({})};
+      const realPrepare=s.prepareOverlay;s.prepareOverlay=function(){events.push(`warm:${this.overlay.width}x${this.overlay.height}`);return realPrepare.call(this);};
+      Object.defineProperty(globalThis,'requestAnimationFrame',{configurable:true,value:(callback:(now:number)=>void)=>{
+        assert.equal(s.prepared,false);frames++;if(resizeStage==='disposed')s.disposed=true;
+        if(frames===1&&(resizeStage==='pending'||resizeStage==='same-size')){if(resizeStage==='pending')rect={width:1280,height:720};s.resize();}
+        queueMicrotask(()=>callback(performance.now()));return frames;
+      }});
+      const before=JSON.stringify(state);
+      if(resizeStage==='read-failure'){h.failRead(1);await assert.rejects(s.prepare(),/readback failed/);assert.equal(s.prepared,false);assert.equal(submissions,0);assert.equal(JSON.stringify(state),before);continue;}
+      if(resizeStage==='fence-failure'){await assert.rejects(s.prepare(),/Initial GPU frame failed/);assert.equal(s.prepared,false);assert.equal(events.includes('reset'),false);assert.equal(JSON.stringify(state),before);continue;}
+      await s.prepare();assert.equal(JSON.stringify(state),before);
+      if(resizeStage==='disposed'){assert.equal(s.prepared,false);assert.equal(events.includes('reset'),false);continue;}
+      assert.equal(s.prepared,true);
+      const expectedPasses=resizeStage==='pending'||resizeStage==='same-size'?2:1;
+      assert.equal(submissions,expectedPasses);assert.equal(frames,expectedPasses);assert.equal(h.reads.length,2*expectedPasses);
+      assert.deepEqual(h.reads.at(-1).args,[0,0,rect.width,rect.height]);assert.equal(events.at(-1),'reset');
+      for(let i=0;i<events.length;i++)if(events[i].startsWith('warm:'))assert.deepEqual(events.slice(i+1,i+3),['render','submit']);
+    }
+  }finally{if(originalRAF)Object.defineProperty(globalThis,'requestAnimationFrame',originalRAF);else delete (globalThis as any).requestAnimationFrame;}
+});
