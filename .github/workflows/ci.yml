@@ -29,6 +29,7 @@ jobs:
       - name: Focused live camera checks without artifact storage
         run: CAMERA_CONTROLS_ONLY=1 CAMERA_RENDER_DIAGNOSTIC=none node node_modules/playwright/cli.js test browser-tests/game.spec.ts --grep "@camera-controls" --reporter=line --output=camera-controls-results
       - name: Historical WebKit timing diagnostic (non-gating, original camera contract)
+        if: ${{ !cancelled() }}
         continue-on-error: true
         run: |
           baseline="$RUNNER_TEMP/nusumidase-camera-baseline"
@@ -40,6 +41,7 @@ jobs:
           cd "$baseline"
           CAMERA_CONTROLS_ONLY=1 CAMERA_RENDER_DIAGNOSTIC=none node node_modules/playwright/cli.js test browser-tests/game.spec.ts --project=webkit --grep "@camera-controls live (normal (393x852|568x320|1280x720)|easy 1280x720)" --reporter=line --output=camera-baseline-results
       - name: Canvas and DOM HUD timing isolation (non-gating diagnosis only)
+        if: ${{ !cancelled() }}
         continue-on-error: true
         run: |
           status=0
