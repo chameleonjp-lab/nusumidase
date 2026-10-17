@@ -39,6 +39,8 @@ export interface GameEvent {
   weapon?: 'mg' | 'cannon'; detail?: string; targetTeam?: Team;
 }
 export interface FlightInput {
+  /** Present only while a pointer, direction key, or unconsumed direction tap owns steering. */
+  steeringActive?: boolean;
   turn: number; climb: number; fire: boolean; loop: boolean; throttle?: number;
   accelerate?: boolean; brake?: boolean; viewAspect?: number; steeringRevision?: number;
   matchId?: string; roundEpoch?: number;

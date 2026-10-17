@@ -180,7 +180,7 @@ function normalizedInput(state: GameState, supplied: FlightInput): FlightInput {
   const input: FlightInput = { ...supplied, turn: axis(supplied.turn), climb: axis(supplied.climb), fire: !!supplied.fire, loop: !!supplied.loop };
   if (supplied.throttle !== undefined) input.throttle = axis(supplied.throttle);
   const stale = supplied.matchId !== undefined && supplied.matchId !== state.matchId || supplied.roundEpoch !== undefined && supplied.roundEpoch !== state.roundEpoch;
-  const neutral = input.turn === 0 && input.climb === 0 && !input.fire && !input.loop && (input.throttle ?? 0) === 0 && !input.accelerate && !input.brake;
+  const neutral = !input.steeringActive && input.turn === 0 && input.climb === 0 && !input.fire && !input.loop && (input.throttle ?? 0) === 0 && !input.accelerate && !input.brake;
   if (meta.inputBlocked && neutral) meta.inputBlocked = false;
   if (stale || meta.inputBlocked || !isAlive(state.player)) return { turn: 0, climb: 0, fire: false, loop: false, throttle: 0, viewAspect: supplied.viewAspect };
   return input;
@@ -230,7 +230,7 @@ export function stepFixed(state: GameState, supplied: FlightInput): boolean {
       const assist = getFlightAssist(plane, enemies, input, state.mode);
       const preferred = advanceThrottle(meta.flight, input, state.mode, FIXED_DT);
       const loopPressed = input.loop && !meta.loopHeld; meta.loopHeld = input.loop;
-      if (updatePlayerLoop(plane, meta.flight, { ...input, turn: assist.turn, climb: assist.climb }, input, loopPressed, FIXED_DT, preferred, MAX_SPEED, assist.responseMultiplier)) {
+      if (updatePlayerLoop(plane, meta.flight, { ...input, turn: assist.turn, climb: assist.climb }, input, loopPressed, FIXED_DT, preferred, MAX_SPEED, assist.responseMultiplier, state.mode)) {
         state.stats.loops = bounded(state.stats.loops); emit(state, 'loop', plane);
       }
     } else updateAircraftMotion(plane, plane.aiTurn, plane.aiClimb, FIXED_DT, 110);

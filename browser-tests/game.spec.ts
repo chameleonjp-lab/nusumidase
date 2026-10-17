@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { execFileSync } from 'node:child_process';
 
 async function openReview(page: Page): Promise<string[]> {
   const errors: string[] = [];
@@ -325,3 +326,46 @@ test('ally respawn and live warnings update on change; simultaneous capture prec
   await expect(page.locator('#announcement')).toHaveText('自軍がコアを回収 · 残り60秒');
   expect(errors).toEqual([]);
 });
+
+// New focused cases are explicitly selected by their CI step, so the existing
+// browser inventory and historical evidence paths remain unchanged.
+if (process.env.CAMERA_CONTROLS_ONLY === '1') {
+const cameraSourceCommit=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
+const cameraTest = test.extend({ screenshot: 'off' as const, trace: 'off' as const });
+for (const mode of ['normal', 'easy'] as const) for (const viewport of [
+  {width:393,height:852},{width:393,height:648},{width:568,height:320},{width:852,height:393},{width:1280,height:720},
+]) cameraTest(`@camera-controls live ${mode} ${viewport.width}x${viewport.height}`, async ({page}) => {
+  await page.setViewportSize(viewport);await page.goto('/?review');
+  await expect(page.locator('#start')).toBeEnabled();
+  await page.locator(`input[name="game-mode"][value="${mode}"]`).check();await page.locator('#start').click();
+  // The existing development harness is read only. Do not invoke manual(),
+  // frame(), step(), setters, or direct control sampling in these live checks.
+  const read=()=>page.evaluate(async()=>{
+    const view=await import('/src/flight-view.ts'),gun=await import('/src/gun-sight.ts');
+    await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()));
+    const h=(window as any).__nusumidase,s=h.state,p=s.player,c=h.scene.camera;
+    const position=p.position.clone(),rotation=p.quaternion.clone();view.getFlightCameraPose(p,s.mode,position,rotation);
+    const point=p.position.clone().set(0,0,-504.5).applyQuaternion(p.quaternion).add(p.position),ndc=point.clone().project(c);
+    const sight=gun.projectGunSight(p,[],innerWidth,innerHeight);
+    return{matchId:s.matchId,generation:p.generation,phase:s.phase,tick:s.tick,inputEpoch:s.inputEpoch,pitch:p.pitch,yaw:p.yaw,
+      positionError:position.distanceTo(c.position),rotationError:1-Math.abs(rotation.dot(c.quaternion)),
+      sightPixelError:Math.max(Math.abs(sight.x-(.5+.5*ndc.x)*innerWidth),Math.abs(sight.y-(.5-.5*ndc.y)*innerHeight)),
+      calls:h.scene.diagnostics().calls,camera:c.quaternion.toArray()};
+  });
+  await expect.poll(async()=>{const s=await read();return s.phase==='playing'&&s.tick>2;}).toBe(true);
+  await page.locator('#flight').focus();const initial=await read();await page.keyboard.down('ArrowUp');
+  await expect.poll(async()=>(await read()).pitch).toBeGreaterThan(initial.pitch+.03);
+  await page.keyboard.down('ArrowRight');await page.keyboard.up('ArrowUp');
+  await expect.poll(async()=>(await read()).yaw).toBeLessThan(initial.yaw-.015);
+  const turning=await read();await expect.poll(async()=>(await read()).tick).toBeGreaterThan(turning.tick+8);const held=await read();
+  expect(held.matchId).toBe(initial.matchId);expect(held.generation).toBe(initial.generation);expect(held.phase).toBe('playing');
+  expect(held.pitch).toBeCloseTo(turning.pitch,10);expect(held.yaw).toBeLessThan(turning.yaw);expect(held.calls).toBeGreaterThan(0);
+  await expect.poll(async()=>(await read()).positionError).toBeLessThan(1e-9);
+  await expect.poll(async()=>(await read()).rotationError).toBeLessThan(1e-12);
+  if(mode==='normal')await expect.poll(async()=>(await read()).sightPixelError).toBeLessThan(1e-8);
+  console.log(JSON.stringify({sourceCommit:cameraSourceCommit,mode,viewport,initial,turning,held,pose:await read()}));
+  await page.keyboard.up('ArrowRight');await page.locator('#pause').click();const paused=await read();
+  await page.locator('#pause-controls').click();await page.locator('#control-cancel').click();
+  expect((await read()).phase).toBe('paused');expect((await read()).tick).toBe(paused.tick);
+});
+}

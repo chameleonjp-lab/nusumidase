@@ -95,6 +95,7 @@ export class FlightControls {
       .concat(commands.flatMap(command => command.focusedAxis === undefined ? [] : [command.focusedAxis]));
     const focused = Number(focusCommands.some(axis => axis > 0)) - Number(focusCommands.some(axis => axis < 0));
     return {
+      ...(this.steerPointer !== null || ['left', 'right', 'up', 'down'].some(action => held(action as KeyAction)) ? { steeringActive: true } : {}),
       turn: clampThrottleAxis(this.turn + Number(held('right')) - Number(held('left'))),
       climb: clampThrottleAxis(this.climb + Number(held('up')) - Number(held('down'))),
       fire: normal && (buttonHeld('fire') || held('fire')), loop: commands.some(command => command.action === 'loop'),

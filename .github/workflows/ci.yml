@@ -11,9 +11,11 @@ permissions:
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -21,3 +23,7 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      - name: Install browsers for bounded camera checks
+        run: npx playwright install --with-deps chromium webkit
+      - name: Focused live camera checks without artifact storage
+        run: CAMERA_CONTROLS_ONLY=1 node node_modules/playwright/cli.js test browser-tests/game.spec.ts --grep "@camera-controls" --reporter=line --output=camera-controls-results

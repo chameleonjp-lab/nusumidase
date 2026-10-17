@@ -71,7 +71,7 @@ export function getFlightAssist(
     ? OFFSCREEN_RESPONSE_MULTIPLIER
     : 1;
 
-  if (mode !== 'easy') {
+  if (mode !== 'easy' || input.steeringActive) {
     return { turn: manualTurn, climb: manualClimb, responseMultiplier, hasVisibleTarget };
   }
 

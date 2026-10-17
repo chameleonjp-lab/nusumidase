@@ -213,3 +213,26 @@ test('30/60/120Hz frame segmentation gives the same authoritative simulation tra
   }
   assert.equal(traces[0].tick, 600); assert.equal(deterministicSnapshot(traces[0]), deterministicSnapshot(traces[1])); assert.equal(deterministicSnapshot(traces[1]), deterministicSnapshot(traces[2]));
 });
+
+test('zero-axis steering owner cannot falsely release an input-generation gate',()=>{
+  const state=playing();pauseGame(state);resumeGame(state);
+  const before=getPlayerTargetSpeed(state);
+  stepFixed(state,{...neutral,steeringActive:true});
+  stepFixed(state,{...neutral,throttle:1,steeringActive:true});assert.equal(getPlayerTargetSpeed(state),before);
+  assert.equal(acknowledgeInputReset(state,state.inputEpoch),true);
+  stepFixed(state,{...neutral,throttle:1,steeringActive:true});assert.ok(getPlayerTargetSpeed(state)>before);
+});
+
+test('carried-core death and exact respawn discard the old held-steering generation',()=>{
+  const state=playing(),player=state.player;place(player,new Vector3(0,500,600));
+  state.flags.enemy={...state.flags.enemy,state:'carried',carrier:aircraftRef(state,player)};
+  const epoch=state.inputEpoch;queueDamageEvent(state,killEvent(state,player));stepFixed(state,{...neutral,turn:.4,steeringActive:true});
+  const dropped=state.flags.enemy,deathPosition=getFlagPosition(state,'enemy').clone();
+  assert.equal(dropped.state,'dropped');assert.ok(state.inputEpoch>epoch);assert.equal(player.lifecycle,'respawnPending');
+  const deathEpoch=state.inputEpoch,generation=player.generation;
+  state.playTicks=player.respawnDuePlayTick!-1;stepFixed(state,{...neutral,turn:.4,steeringActive:true});
+  assert.equal(player.generation,generation+1);assert.equal(player.lifecycle,'active');assert.ok(state.inputEpoch>deathEpoch);
+  assert.equal(acknowledgeInputReset(state,deathEpoch),false);assert.deepEqual(getFlagPosition(state,'enemy'),deathPosition);assert.equal(state.flags.enemy,dropped);
+  const target=getPlayerTargetSpeed(state);stepFixed(state,{...neutral,steeringActive:true});stepFixed(state,{...neutral,throttle:1,steeringActive:true});assert.equal(getPlayerTargetSpeed(state),target);
+  acknowledgeInputReset(state,state.inputEpoch);stepFixed(state,{...neutral,throttle:1,steeringActive:true});assert.ok(getPlayerTargetSpeed(state)>target);assert.equal(stateInvariantError(state),null);
+});
