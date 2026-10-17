@@ -596,3 +596,84 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
   }
 });
 }
+
+// Separate visual-equivalence gate; never precedes or warms live acceptance.
+if (process.env.CAMERA_LABEL_PIXELS === '1') {
+  test.use({screenshot:'off',trace:'off',video:'off',deviceScaleFactor:2});
+  test.describe('public label whole-overlay RGBA equivalence',()=>{
+    for(const mode of ['normal','easy'] as const)test(`@camera-label-pixels ${mode}`,async({page})=>{
+      test.setTimeout(180000);
+      await openReview(page);
+      const result=await page.evaluate(async mode=>{
+        const { NusumidaseScene }=await import('/src/scene.ts');
+        const { createGame,startGame }=await import('/src/simulation.ts');
+        const { getFlightCameraPose }=await import('/src/flight-view.ts');
+        const { BASE_POSITIONS }=await import('/src/arena.ts');
+        const { aircraftRef }=await import('/src/respawn.ts');
+        await document.fonts.ready;
+        const canvases=[document.createElement('canvas'),document.createElement('canvas')];
+        const contexts=canvases.map(c=>c.getContext('2d')!);
+        let comparisons=0,differentComponents=0,maxDifference=0,firstDifference:any=null,clippedLabels=0;
+        // This is the exact pre-optimization pair of text operations, independent
+        // of the candidate's bounds, clipping decisions and helper body.
+        const originalLabel=function(this:any,title:string,detail:string,x:number,y:number){
+          const c=this.ctx;c.font='600 10px system-ui';c.textAlign='center';c.fillText(title,x,y);
+          c.font='10px system-ui';c.fillStyle='#dce8df';c.fillText(detail,x,y+13);
+        };
+        const sizes=[[393,852],[393,852],[393,648],[568,320],[852,393],[1280,720],[393.375,851.625],[1279.75,719.375]];
+        const phases=['home','dropped','carried','player-carried','dead','paused','blank','edge-left','edge-right','999m','1000m','1050m'];
+        try{
+          for(const [width,height] of sizes){
+            for(const canvas of canvases){canvas.width=Math.round(width);canvas.height=Math.round(height);}
+            for(const phase of phases)for(const background of ['transparent','#406080','rgba(64,96,128,.37)']){
+              const state=createGame(5,mode);startGame(state);
+              if(phase==='dropped')for(const team of ['friendly','enemy'] as const){state.flags[team]={...state.flags[team],state:'dropped',position:state.player.position.clone().set(0,305,0),droppedAtPlayTick:0};}
+              if(phase==='carried')for(const team of ['friendly','enemy'] as const){state.flags[team].state='carried';state.flags[team].carrier=aircraftRef(state,team==='friendly'?state.enemies[0]:state.allies[0]);}
+              if(phase==='player-carried'){state.flags.enemy.state='carried';state.flags.enemy.carrier=aircraftRef(state,state.player);}
+              if(phase==='dead'){state.player.lifecycle='respawnPending';state.player.health=0;}
+              if(phase==='paused')state.phase='paused';
+              if(phase.endsWith('m')){const distance=Number(phase.slice(0,-1));state.player.position.copy(BASE_POSITIONS.friendly).add(state.player.position.clone().set(distance,0,0));}
+              // Fractional side-row positions, label canvas-edge clipping and
+              // altitude arrow boundaries all retain the original coordinates.
+              if(phase==='edge-left')state.player.position.y=BASE_POSITIONS.friendly.y-5;
+              if(phase==='edge-right')state.player.position.y=BASE_POSITIONS.enemy.y+5.001;
+              const before=JSON.stringify(state),camera=(window as any).__nusumidase.scene.camera.clone();
+              camera.aspect=width/height;camera.updateProjectionMatrix();
+              getFlightCameraPose(state.player,mode,camera.position,camera.quaternion);camera.updateMatrixWorld();
+              const pose=JSON.stringify({p:camera.position.toArray(),q:camera.quaternion.toArray(),w:camera.matrixWorld.toArray()});
+              for(let i=0;i<2;i++){
+                const c=contexts[i],canvas=canvases[i],s:any=Object.create(NusumidaseScene.prototype);
+                Object.assign(s,{ctx:c,camera,width,height});if(i===0)s.drawPublicLabel=originalLabel;
+                const clear=c.clearRect,clip=c.clip;
+                c.clearRect=function(...args:Parameters<CanvasRenderingContext2D['clearRect']>){clear.apply(this,args);if(background!=='transparent'){this.save();try{this.shadowBlur=0;this.fillStyle=background;this.fillRect(0,0,canvas.width,canvas.height);}finally{this.restore();}}};
+                c.clip=function(...args:any[]){if(i===1)clippedLabels++;return (clip as any).apply(this,args);};
+                try{
+                  clear.call(c,0,0,canvas.width,canvas.height);c.direction=phase==='edge-right'?'rtl':'ltr';
+                  s.drawOverlay(state,phase!=='blank');
+                  // Full-canvas backgrounds plus an intersecting leader exercise
+                  // compositing; deliberately near-edge labels exercise padding.
+                  if(phase.startsWith('edge-')){
+                    c.save();try{c.shadowBlur=3;c.shadowColor='rgba(0,20,30,.9)';c.fillStyle='#77dacb';
+                      c.beginPath();c.moveTo(0,17);c.lineTo(width,43);c.stroke();
+                      s.drawPublicLabel('自軍 A コア · 携行 ↓','999m · 高度305m',phase==='edge-left'?.375:width-.375,31.625);
+                    }finally{c.restore();}
+                  }
+                }finally{c.clearRect=clear;c.clip=clip;}
+              }
+              const a=contexts[0].getImageData(0,0,canvases[0].width,canvases[0].height).data,b=contexts[1].getImageData(0,0,canvases[1].width,canvases[1].height).data;
+              for(let i=0;i<a.length;i++){const delta=Math.abs(a[i]-b[i]);if(delta){differentComponents++;maxDifference=Math.max(maxDifference,delta);firstDifference??={width,height,phase,background,component:i,before:a[i],after:b[i]};}}
+              if(JSON.stringify(state)!==before||JSON.stringify({p:camera.position.toArray(),q:camera.quaternion.toArray(),w:camera.matrixWorld.toArray()})!==pose)throw new Error('Pixel observation mutated state/camera');
+              comparisons++;
+            }
+            // Same-size backing reset must have no stale path or cached pixels.
+            for(const canvas of canvases)canvas.width=canvas.width;
+          }
+        }finally{for(const canvas of canvases){canvas.width=0;canvas.height=0;}}
+        return {mode,comparisons,differentComponents,maxDifference,firstDifference,clippedLabels};
+      },mode);
+      console.log(JSON.stringify({pixelEquivalence:true,...result}));
+      expect(result.comparisons).toBe(288);expect(result.clippedLabels).toBeGreaterThan(0);
+      expect(result.differentComponents).toBe(0);expect(result.maxDifference).toBe(0);
+    });
+  });
+}

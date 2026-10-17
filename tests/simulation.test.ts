@@ -437,3 +437,32 @@ test('preparation warms the current backing store after compile/queued resize an
     }
   }finally{if(originalRAF)Object.defineProperty(globalThis,'requestAnimationFrame',originalRAF);else delete (globalThis as any).requestAnimationFrame;}
 });
+
+test('public label clip keeps original text operations, current path and exact fallback states',async()=>{
+  const { NusumidaseScene }=await import('../src/scene');
+  const descriptor=Object.getOwnPropertyDescriptor(globalThis,'Path2D');
+  class ClipPath { rectangles:number[][]=[]; rect(...values:number[]){this.rectangles.push(values);} }
+  Object.defineProperty(globalThis,'Path2D',{configurable:true,value:ClipPath});
+  try{
+    for(const variant of ['clip','missing-bounds','nonfinite-bounds','transform','alpha','composite','filter','offset','blur','throw'] as const){
+      const commands:any[]=[],stack:any[]=[],path=['existing','leader'];let measures=0;
+      const c:any={font:'old',textAlign:'left',fillStyle:'#77dacb',shadowBlur:3,shadowOffsetX:0,shadowOffsetY:0,globalAlpha:1,globalCompositeOperation:'source-over',filter:'none',
+        getTransform:()=>({isIdentity:variant!=='transform'}),
+        measureText:()=>{measures++;return variant==='missing-bounds'?{}:{actualBoundingBoxLeft:20,actualBoundingBoxRight:variant==='nonfinite-bounds'?NaN:22,actualBoundingBoxAscent:8,actualBoundingBoxDescent:3};},
+        save:()=>stack.push({font:c.font,textAlign:c.textAlign,fillStyle:c.fillStyle}),restore:()=>Object.assign(c,stack.pop()),
+        clip:(p:ClipPath)=>commands.push(['clip',p.rectangles]),
+        fillText:(text:string,x:number,y:number)=>{commands.push(['text',text,x,y,c.font,c.fillStyle]);if(variant==='throw')throw new Error('text failure');},
+      };
+      if(variant==='alpha')c.globalAlpha=.5;if(variant==='composite')c.globalCompositeOperation='copy';if(variant==='filter')c.filter='blur(1px)';if(variant==='offset')c.shadowOffsetX=1;if(variant==='blur')c.shadowBlur=4;
+      const s:any=Object.create(NusumidaseScene.prototype);s.ctx=c;
+      if(variant==='throw')assert.throws(()=>s.drawPublicLabel('基地','1.0km · 高度30m',86.25,264.12),/text failure/);
+      else s.drawPublicLabel('基地','1.0km · 高度30m',86.25,264.12);
+      assert.deepEqual(path,['existing','leader']);assert.equal(stack.length,0);
+      const clipped=variant==='clip'||variant==='throw';assert.equal(commands.some(x=>x[0]==='clip'),clipped);
+      if(clipped)assert.deepEqual(commands[0],['clip',[[42,232,91,73]]]);
+      if(variant!=='throw')assert.deepEqual(commands.filter(x=>x[0]==='text'),[
+        ['text','基地',86.25,264.12,'600 10px system-ui','#77dacb'],['text','1.0km · 高度30m',86.25,277.12,'10px system-ui','#dce8df']]);
+      if(['alpha','composite','filter','offset','blur','transform'].includes(variant))assert.equal(measures,0);
+    }
+  }finally{if(descriptor)Object.defineProperty(globalThis,'Path2D',descriptor);else delete (globalThis as any).Path2D;}
+});

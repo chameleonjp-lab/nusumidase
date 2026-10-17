@@ -28,6 +28,9 @@ jobs:
       # Acceptance must precede reference/ablation runs to avoid their warmup.
       - name: Focused live camera checks without artifact storage
         run: CAMERA_CONTROLS_ONLY=1 CAMERA_RENDER_DIAGNOSTIC=none node node_modules/playwright/cli.js test browser-tests/game.spec.ts --grep "@camera-controls" --reporter=line --output=camera-controls-results
+      - name: Whole-overlay exact RGBA label equivalence without image storage
+        if: ${{ !cancelled() }}
+        run: CAMERA_LABEL_PIXELS=1 node node_modules/playwright/cli.js test browser-tests/game.spec.ts --grep "@camera-label-pixels" --reporter=line --output=camera-label-pixel-results
       - name: Historical WebKit timing diagnostic (non-gating, original camera contract)
         if: ${{ !cancelled() }}
         continue-on-error: true

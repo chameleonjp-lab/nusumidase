@@ -449,11 +449,35 @@ export class NusumidaseScene {
     const edgeX = textX + (x > textX ? 46 : -46), edgeY = textY + 5;
     c.save(); c.globalAlpha = .25; c.lineWidth = .75;
     c.beginPath(); c.moveTo(x, y - 9); c.lineTo(edgeX, edgeY); c.lineTo(textX, edgeY); c.stroke(); c.restore();
-    c.font = '600 10px system-ui'; c.textAlign = 'center';
-    c.fillText(`${label}${altitude < -5 ? ' ↓' : altitude > 5 ? ' ↑' : ''}`, textX, textY);
-    c.font = '10px system-ui'; c.fillStyle = '#dce8df';
-    c.fillText(`${distance >= 1000 ? `${(distance / 1000).toFixed(1)}km` : `${Math.round(distance)}m`} · 高度${Math.round(world.y)}m`, textX, textY + 13);
+    this.drawPublicLabel(`${label}${altitude < -5 ? ' ↓' : altitude > 5 ? ' ↑' : ''}`,
+      `${distance >= 1000 ? `${(distance / 1000).toFixed(1)}km` : `${Math.round(distance)}m`} · 高度${Math.round(world.y)}m`, textX, textY);
     c.restore();
+  }
+
+  private drawPublicLabel(title: string, detail: string, x: number, y: number): void {
+    const c = this.ctx;
+    c.font = '600 10px system-ui'; c.textAlign = 'center';
+    const draw = () => {
+      c.font = '600 10px system-ui'; c.fillText(title, x, y);
+      c.font = '10px system-ui'; c.fillStyle = '#dce8df'; c.fillText(detail, x, y + 13);
+    };
+    // Keep the original two source-over operations and their subpixel positions.
+    // A local clip can bound the shadow surface without introducing an image
+    // cache or an extra alpha-compositing round trip. Unknown states stay direct.
+    if (typeof Path2D === 'undefined' || c.shadowBlur !== 3 || c.shadowOffsetX !== 0 || c.shadowOffsetY !== 0 ||
+        c.globalAlpha !== 1 || c.globalCompositeOperation !== 'source-over' || (c.filter && c.filter !== 'none')) { draw(); return; }
+    const transform = c.getTransform();
+    if (!transform.isIdentity) { draw(); return; }
+    const first = c.measureText(title); c.font = '10px system-ui'; const second = c.measureText(detail);
+    const bounds = [first.actualBoundingBoxLeft, first.actualBoundingBoxRight, first.actualBoundingBoxAscent, first.actualBoundingBoxDescent,
+      second.actualBoundingBoxLeft, second.actualBoundingBoxRight, second.actualBoundingBoxAscent, second.actualBoundingBoxDescent, x, y];
+    if (!bounds.every(Number.isFinite)) { draw(); return; }
+    const left = Math.floor(x - Math.max(bounds[0], bounds[4]) - 24), right = Math.ceil(x + Math.max(bounds[1], bounds[5]) + 24);
+    const top = Math.floor(Math.min(y - bounds[2], y + 13 - bounds[6]) - 24), bottom = Math.ceil(Math.max(y + bounds[3], y + 13 + bounds[7]) + 24);
+    if (right <= left || bottom <= top) { draw(); return; }
+    const clip = new Path2D(); clip.rect(left, top, right - left, bottom - top);
+    c.save();
+    try { c.clip(clip); draw(); } finally { c.restore(); }
   }
 
   private radar(state: GameState, c: CanvasRenderingContext2D, w: number, h: number): void {
