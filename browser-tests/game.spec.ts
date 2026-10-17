@@ -331,25 +331,42 @@ test('ally respawn and live warnings update on change; simultaneous capture prec
 // browser inventory and historical evidence paths remain unchanged.
 if (process.env.CAMERA_CONTROLS_ONLY === '1') {
 const cameraSourceCommit=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
+// These bounded display ablations are explicitly selected only by a non-gating
+// diagnostic step. Acceptance always uses 'none' with the complete product.
+const renderDiagnostic=process.env.CAMERA_RENDER_DIAGNOSTIC??'none';
+if(!['none','full','canvas-off','hud-off','both-off'].includes(renderDiagnostic))throw new Error('Unknown render diagnostic');
 const cameraTest = test.extend({ screenshot: 'off' as const, trace: 'off' as const });
 for (const mode of ['normal', 'easy'] as const) for (const viewport of [
   {width:393,height:852},{width:393,height:648},{width:568,height:320},{width:852,height:393},{width:1280,height:720},
 ]) cameraTest(`@camera-controls live ${mode} ${viewport.width}x${viewport.height}`, async ({page}) => {
   await page.setViewportSize(viewport);await page.goto('/?review');
   await expect(page.locator('#start')).toBeEnabled();
+  let startupReadiness:any=null;
+  try{
   // Observe only real render submissions. A pending GPU fence deliberately lets
   // simulation advance without updating the camera, so an arbitrary rAF's live
   // state is not the state that produced the currently submitted view.
-  await page.evaluate(async()=>{
+  await page.evaluate(async(renderDiagnostic)=>{
     const view=await import('/src/flight-view.ts'),gun=await import('/src/gun-sight.ts');
     const h=(window as any).__nusumidase,scene=h.scene,original=scene.render;
     const originalPoll=scene.pollRender,originalWebGL=scene.renderer.render,originalOverlay=scene.drawOverlay;
     const gl=scene.renderer.getContext(),debugRenderer=gl.getExtension('WEBGL_debug_renderer_info');
+    const hideCanvas=renderDiagnostic==='canvas-off'||renderDiagnostic==='both-off';
+    const hideHUD=renderDiagnostic==='hud-off'||renderDiagnostic==='both-off';
+    const hud=document.querySelector<HTMLElement>('#hud')!;
+    const oldDisplay=hud.style.getPropertyValue('display'),oldPriority=hud.style.getPropertyPriority('display');
+    const hadStyleAttribute=hud.hasAttribute('style');
+    const restoreHUD=()=>{
+      if(!hideHUD)return;
+      if(oldDisplay)hud.style.setProperty('display',oldDisplay,oldPriority);else hud.style.removeProperty('display');
+      if(!hadStyleAttribute&&!hud.getAttribute('style'))hud.removeAttribute('style');
+    };
     const observation={sequence:0,samples:[] as any[],readyFrame:null as any,frameSamples:[] as any[],firstPause:null as any,
       backend:{vendor:gl.getParameter(gl.VENDOR),renderer:gl.getParameter(gl.RENDERER),
         unmaskedRenderer:debugRenderer?gl.getParameter(debugRenderer.UNMASKED_RENDERER_WEBGL):null},
       maxObservationMs:0,maxOriginalRenderMs:0,maxWebGLMs:0,maxOverlayMs:0,
-      restore:()=>{scene.render=original;scene.pollRender=originalPoll;scene.renderer.render=originalWebGL;scene.drawOverlay=originalOverlay;}};
+      restore:()=>{scene.render=original;scene.pollRender=originalPoll;scene.renderer.render=originalWebGL;scene.drawOverlay=originalOverlay;restoreHUD();}};
+    (window as any).__cameraObservation=observation;
     let lastFrameTime:number|null=null,currentFrame:any=null;
     const capturePause=()=>{
       if(h.state.phase!=='paused'||observation.firstPause!==null)return;
@@ -382,7 +399,7 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
       }
     };
     scene.drawOverlay=function(...args:any[]){
-      const before=performance.now();try{return originalOverlay.apply(this,args);}finally{
+      const before=performance.now();try{if(!hideCanvas)return originalOverlay.apply(this,args);}finally{
         const ms=performance.now()-before;observation.maxOverlayMs=Math.max(observation.maxOverlayMs,ms);
         if(currentFrame)currentFrame.overlayMs=ms;
       }
@@ -419,8 +436,8 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
       observation.maxOriginalRenderMs=Math.max(observation.maxOriginalRenderMs,renderEnd-renderStart);
       return submitted;
     };
-    (window as any).__cameraObservation=observation;
-  });
+    if(hideHUD)hud.style.setProperty('display','none','important');
+  },renderDiagnostic);
   const live=()=>page.evaluate(()=>{
     const h=(window as any).__nusumidase,o=(window as any).__cameraObservation;
     return {tick:h.state.tick,phase:h.state.phase,pauseReason:h.state.pauseReason,sequence:o.sequence,queue:h.scene.diagnostics().queue};
@@ -438,8 +455,6 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
     },{afterTick,afterSequence,limits},{timeout:10000,polling:'raf'});
     try{return await handle.jsonValue();}finally{await handle.dispose();}
   };
-  let startupReadiness:any=null;
-  try{
     await page.locator(`input[name="game-mode"][value="${mode}"]`).check();
     // Mode selection creates a new ready-state scene. Start only after its first
     // real submitted frame completes, rather than carrying shader/upload work
@@ -480,6 +495,10 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
       if(mode==='normal')expect(sample.sightPixelError).toBeLessThan(1e-8);
     }
     expect((await live()).phase).toBe('playing');await page.keyboard.up('ArrowRight');
+    // Display ablations compare only the same active-flight input sequence;
+    // hidden UI cannot establish pause/settings acceptance. The mandatory run
+    // has no ablation and always executes all assertions below.
+    if(renderDiagnostic!=='none')return;
     await page.locator('#pause').click({timeout:5000});const paused=await live();
     expect(paused.phase).toBe('paused');expect(paused.pauseReason).toBe('時計・復活・装填も停止しています');
     await page.locator('#pause-controls').click();await page.locator('#control-cancel').click();
@@ -488,13 +507,14 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
     if(!page.isClosed()){
       const evidence=await page.evaluate(()=>{
         const o=(window as any).__cameraObservation,h=(window as any).__nusumidase;
+        if(!o)return {observationUnavailable:true};
         o.restore();const metrics=h.metrics;
         return {observedFrames:o.sequence,maxObservationMs:o.maxObservationMs,maxOriginalRenderMs:o.maxOriginalRenderMs,
           maxWebGLMs:o.maxWebGLMs,maxOverlayMs:o.maxOverlayMs,backend:o.backend,firstPause:o.firstPause,
           frameSamples:o.frameSamples,frameTimes:metrics.frameTimes.slice(-32),updateTimes:metrics.updateTimes.slice(-32),
           lastSamples:o.samples.slice(-4),live:{phase:h.state.phase,tick:h.state.tick,pauseReason:h.state.pauseReason,queue:h.scene.diagnostics().queue}};
       });
-      console.log(JSON.stringify({sourceCommit:cameraSourceCommit,mode,viewport,startupReadiness,...evidence}));
+      console.log(JSON.stringify({sourceCommit:cameraSourceCommit,renderDiagnostic,acceptanceRun:renderDiagnostic==='none',mode,viewport,startupReadiness,...evidence}));
     }
   }
 });

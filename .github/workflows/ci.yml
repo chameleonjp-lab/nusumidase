@@ -35,6 +35,14 @@ jobs:
           cp browser-tests/game.spec.ts "$baseline/browser-tests/game.spec.ts"
           ln -s "$GITHUB_WORKSPACE/node_modules" "$baseline/node_modules"
           cd "$baseline"
-          CAMERA_CONTROLS_ONLY=1 node node_modules/playwright/cli.js test browser-tests/game.spec.ts --project=webkit --grep "@camera-controls live (normal (393x852|568x320|1280x720)|easy 1280x720)" --reporter=line --output=camera-baseline-results
+          CAMERA_CONTROLS_ONLY=1 CAMERA_RENDER_DIAGNOSTIC=none node node_modules/playwright/cli.js test browser-tests/game.spec.ts --project=webkit --grep "@camera-controls live (normal (393x852|568x320|1280x720)|easy 1280x720)" --reporter=line --output=camera-baseline-results
+      - name: Canvas and DOM HUD timing isolation (non-gating diagnosis only)
+        continue-on-error: true
+        run: |
+          status=0
+          for variant in full canvas-off hud-off both-off; do
+            CAMERA_CONTROLS_ONLY=1 CAMERA_RENDER_DIAGNOSTIC="$variant" node node_modules/playwright/cli.js test browser-tests/game.spec.ts --project=webkit --grep "@camera-controls live normal 1280x720" --reporter=line --output="camera-render-diagnostic-results/$variant" || status=1
+          done
+          exit "$status"
       - name: Focused live camera checks without artifact storage
-        run: CAMERA_CONTROLS_ONLY=1 node node_modules/playwright/cli.js test browser-tests/game.spec.ts --grep "@camera-controls" --reporter=line --output=camera-controls-results
+        run: CAMERA_CONTROLS_ONLY=1 CAMERA_RENDER_DIAGNOSTIC=none node node_modules/playwright/cli.js test browser-tests/game.spec.ts --grep "@camera-controls" --reporter=line --output=camera-controls-results
