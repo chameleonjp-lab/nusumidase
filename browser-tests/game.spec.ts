@@ -343,11 +343,14 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
   await page.evaluate(async()=>{
     const view=await import('/src/flight-view.ts'),gun=await import('/src/gun-sight.ts');
     const h=(window as any).__nusumidase,scene=h.scene,original=scene.render;
-    const observation={sequence:0,samples:[] as any[],restore:()=>{scene.render=original;}};
+    const observation={sequence:0,samples:[] as any[],maxObservationMs:0,maxOriginalRenderMs:0,restore:()=>{scene.render=original;}};
     scene.render=function(...args:any[]){
+      const observationStart=performance.now();
       const state=args[0],p={...state.player,position:state.player.position.clone(),quaternion:state.player.quaternion.clone()};
       const tick=state.tick,phase=state.phase,mode=state.mode,matchId=state.matchId,inputEpoch=state.inputEpoch;
+      const renderStart=performance.now();
       const submitted=original.apply(this,args); // Exactly once, with untouched arguments.
+      const renderEnd=performance.now();
       if(submitted&&phase==='playing'){
         const c=this.camera,diagnostics=this.diagnostics(),position=p.position.clone(),rotation=p.quaternion.clone();
         view.getFlightCameraPose(p,mode,position,rotation);
@@ -361,6 +364,8 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
           calls:diagnostics.calls,queue:diagnostics.queue,camera:actual});
         if(observation.samples.length>32)observation.samples.shift();
       }
+      observation.maxObservationMs=Math.max(observation.maxObservationMs,renderStart-observationStart+performance.now()-renderEnd);
+      observation.maxOriginalRenderMs=Math.max(observation.maxOriginalRenderMs,renderEnd-renderStart);
       return submitted;
     };
     (window as any).__cameraObservation=observation;
@@ -369,13 +374,15 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
     const h=(window as any).__nusumidase,o=(window as any).__cameraObservation;
     return {tick:h.state.tick,phase:h.state.phase,pauseReason:h.state.pauseReason,sequence:o.sequence,queue:h.scene.diagnostics().queue};
   });
-  const next=async(afterTick:number,afterSequence:number,limits:{minPitch?:number;maxYaw?:number}={})=>{
+  const next=async(afterTick:number,afterSequence:number,limits:{yawBefore?:number;maxYawDelta?:number}={})=>{
     const handle=await page.waitForFunction(({afterTick,afterSequence,limits})=>{
       const h=(window as any).__nusumidase,o=(window as any).__cameraObservation,s=o.samples.at(-1);
       if(h.state.phase==='paused')throw new Error(JSON.stringify({reason:h.state.pauseReason,tick:h.state.tick,queue:h.scene.diagnostics().queue}));
       if(!s||s.phase!=='playing'||s.tick<=afterTick||s.sequence<=afterSequence)return false;
-      if(limits.minPitch!==undefined&&s.pitch<=limits.minPitch)return false;
-      if(limits.maxYaw!==undefined&&s.yaw>=limits.maxYaw)return false;
+      if(limits.yawBefore!==undefined&&limits.maxYawDelta!==undefined){
+        const delta=Math.atan2(Math.sin(s.yaw-limits.yawBefore),Math.cos(s.yaw-limits.yawBefore));
+        if(delta>=limits.maxYawDelta)return false;
+      }
       return s;
     },{afterTick,afterSequence,limits},{timeout:10000,polling:'raf'});
     try{return await handle.jsonValue();}finally{await handle.dispose();}
@@ -383,14 +390,25 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
   try{
     await page.locator(`input[name="game-mode"][value="${mode}"]`).check();await page.locator('#start').click();
     await page.locator('#flight').focus();const initial=await next(2,0);
-    await page.keyboard.down('ArrowUp');await next(initial.tick,initial.sequence,{minPitch:initial.pitch+.03});
+    await page.keyboard.down('ArrowUp');
+    // Release the short climb on real simulation progress, not on a potentially
+    // slow GPU submission; observation must not prolong the pilot's input.
+    const climb=await page.waitForFunction(({tick,pitch})=>{
+      const h=(window as any).__nusumidase;
+      if(h.state.phase==='paused')throw new Error(JSON.stringify({reason:h.state.pauseReason,tick:h.state.tick,queue:h.scene.diagnostics().queue}));
+      return h.state.tick>tick&&h.state.player.pitch>pitch+.03;
+    },{tick:initial.tick,pitch:initial.pitch},{timeout:10000,polling:'raf'});
+    await climb.dispose();
     await page.keyboard.down('ArrowRight');await page.keyboard.up('ArrowUp');
     // Both a strictly later product tick and a later submitted frame are needed
     // after keyup; never compare a pre-keyup cached observation to held input.
-    const released=await live();const turning=await next(released.tick,released.sequence,{maxYaw:initial.yaw-.015});
+    const released=await live();const turning=await next(released.tick,released.sequence,{yawBefore:initial.yaw,maxYawDelta:-.015});
     const held=await next(turning.tick+8,turning.sequence);
     expect(held.matchId).toBe(initial.matchId);expect(held.generation).toBe(initial.generation);expect(held.phase).toBe('playing');
-    expect(held.pitch).toBeCloseTo(turning.pitch,10);expect(held.yaw).toBeLessThan(turning.yaw);expect(held.calls).toBeGreaterThan(0);
+    expect(held.pitch).toBeCloseTo(turning.pitch,10);
+    // The product normalizes yaw at ±π; compare the signed turn across that seam.
+    const heldYawDelta=Math.atan2(Math.sin(held.yaw-turning.yaw),Math.cos(held.yaw-turning.yaw));
+    expect(heldYawDelta).toBeLessThan(0);expect(held.calls).toBeGreaterThan(0);
     const samples=await page.evaluate(()=>(window as any).__cameraObservation.samples);
     for(const sample of samples){
       expect(sample.positionError).toBeLessThan(1e-9);expect(sample.rotationError).toBeLessThan(1e-12);
@@ -405,7 +423,7 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
     if(!page.isClosed()){
       const evidence=await page.evaluate(()=>{
         const o=(window as any).__cameraObservation,h=(window as any).__nusumidase;
-        o.restore();return {observedFrames:o.sequence,lastSamples:o.samples.slice(-4),live:{phase:h.state.phase,tick:h.state.tick,pauseReason:h.state.pauseReason,queue:h.scene.diagnostics().queue}};
+        o.restore();return {observedFrames:o.sequence,maxObservationMs:o.maxObservationMs,maxOriginalRenderMs:o.maxOriginalRenderMs,lastSamples:o.samples.slice(-4),live:{phase:h.state.phase,tick:h.state.tick,pauseReason:h.state.pauseReason,queue:h.scene.diagnostics().queue}};
       });
       console.log(JSON.stringify({sourceCommit:cameraSourceCommit,mode,viewport,...evidence}));
     }
