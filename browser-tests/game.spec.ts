@@ -343,7 +343,7 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
   await page.evaluate(async()=>{
     const view=await import('/src/flight-view.ts'),gun=await import('/src/gun-sight.ts');
     const h=(window as any).__nusumidase,scene=h.scene,original=scene.render;
-    const observation={sequence:0,samples:[] as any[],maxObservationMs:0,maxOriginalRenderMs:0,restore:()=>{scene.render=original;}};
+    const observation={sequence:0,samples:[] as any[],readyFrame:null as any,maxObservationMs:0,maxOriginalRenderMs:0,restore:()=>{scene.render=original;}};
     scene.render=function(...args:any[]){
       const observationStart=performance.now();
       const state=args[0],p={...state.player,position:state.player.position.clone(),quaternion:state.player.quaternion.clone()};
@@ -351,6 +351,12 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
       const renderStart=performance.now();
       const submitted=original.apply(this,args); // Exactly once, with untouched arguments.
       const renderEnd=performance.now();
+      if(submitted&&phase==='ready'&&observation.readyFrame?.matchId!==matchId){
+        const diagnostics=this.diagnostics();
+        const queue=diagnostics.queue;
+        observation.readyFrame={matchId,mode,submittedCount:queue.submittedCount,submissionQueue:queue,
+          validFence:queue.failure===null&&queue.status==='pending'&&queue.submittedCount>queue.completedCount};
+      }
       if(submitted&&phase==='playing'){
         const c=this.camera,diagnostics=this.diagnostics(),position=p.position.clone(),rotation=p.quaternion.clone();
         view.getFlightCameraPose(p,mode,position,rotation);
@@ -387,8 +393,22 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
     },{afterTick,afterSequence,limits},{timeout:10000,polling:'raf'});
     try{return await handle.jsonValue();}finally{await handle.dispose();}
   };
+  let startupReadiness:any=null;
   try{
-    await page.locator(`input[name="game-mode"][value="${mode}"]`).check();await page.locator('#start').click();
+    await page.locator(`input[name="game-mode"][value="${mode}"]`).check();
+    // Mode selection creates a new ready-state scene. Start only after its first
+    // real submitted frame completes, rather than carrying shader/upload work
+    // from an earlier mode into the active-flight clock. No extra render call.
+    const readyFrame=await page.waitForFunction(mode=>{
+      const h=(window as any).__nusumidase,o=(window as any).__cameraObservation,r=o.readyFrame;
+      if(h.state.phase!=='ready'||h.state.mode!==mode||!r||r.matchId!==h.state.matchId||r.mode!==mode)return false;
+      const queue=h.scene.diagnostics().queue;
+      if(!r.validFence||queue.failure!==null||queue.status==='failed'||queue.status==='stalled')
+        throw new Error(JSON.stringify({reason:'Selected-mode ready frame did not have a healthy fence',readyFrame:r,queue}));
+      return queue.completedCount>=r.submittedCount?{...r,queue}:false;
+    },mode,{timeout:10000,polling:'raf'});
+    try{startupReadiness=await readyFrame.jsonValue();}finally{await readyFrame.dispose();}
+    await page.locator('#start').click();
     await page.locator('#flight').focus();const initial=await next(2,0);
     await page.keyboard.down('ArrowUp');
     // Release the short climb on real simulation progress, not on a potentially
@@ -425,7 +445,7 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
         const o=(window as any).__cameraObservation,h=(window as any).__nusumidase;
         o.restore();return {observedFrames:o.sequence,maxObservationMs:o.maxObservationMs,maxOriginalRenderMs:o.maxOriginalRenderMs,lastSamples:o.samples.slice(-4),live:{phase:h.state.phase,tick:h.state.tick,pauseReason:h.state.pauseReason,queue:h.scene.diagnostics().queue}};
       });
-      console.log(JSON.stringify({sourceCommit:cameraSourceCommit,mode,viewport,...evidence}));
+      console.log(JSON.stringify({sourceCommit:cameraSourceCommit,mode,viewport,startupReadiness,...evidence}));
     }
   }
 });
