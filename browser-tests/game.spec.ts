@@ -337,35 +337,78 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
 ]) cameraTest(`@camera-controls live ${mode} ${viewport.width}x${viewport.height}`, async ({page}) => {
   await page.setViewportSize(viewport);await page.goto('/?review');
   await expect(page.locator('#start')).toBeEnabled();
-  await page.locator(`input[name="game-mode"][value="${mode}"]`).check();await page.locator('#start').click();
-  // The existing development harness is read only. Do not invoke manual(),
-  // frame(), step(), setters, or direct control sampling in these live checks.
-  const read=()=>page.evaluate(async()=>{
+  // Observe only real render submissions. A pending GPU fence deliberately lets
+  // simulation advance without updating the camera, so an arbitrary rAF's live
+  // state is not the state that produced the currently submitted view.
+  await page.evaluate(async()=>{
     const view=await import('/src/flight-view.ts'),gun=await import('/src/gun-sight.ts');
-    await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()));
-    const h=(window as any).__nusumidase,s=h.state,p=s.player,c=h.scene.camera;
-    const position=p.position.clone(),rotation=p.quaternion.clone();view.getFlightCameraPose(p,s.mode,position,rotation);
-    const point=p.position.clone().set(0,0,-504.5).applyQuaternion(p.quaternion).add(p.position),ndc=point.clone().project(c);
-    const sight=gun.projectGunSight(p,[],innerWidth,innerHeight);
-    return{matchId:s.matchId,generation:p.generation,phase:s.phase,tick:s.tick,inputEpoch:s.inputEpoch,pitch:p.pitch,yaw:p.yaw,
-      positionError:position.distanceTo(c.position),rotationError:1-Math.abs(rotation.dot(c.quaternion)),
-      sightPixelError:Math.max(Math.abs(sight.x-(.5+.5*ndc.x)*innerWidth),Math.abs(sight.y-(.5-.5*ndc.y)*innerHeight)),
-      calls:h.scene.diagnostics().calls,camera:c.quaternion.toArray()};
+    const h=(window as any).__nusumidase,scene=h.scene,original=scene.render;
+    const observation={sequence:0,samples:[] as any[],restore:()=>{scene.render=original;}};
+    scene.render=function(...args:any[]){
+      const state=args[0],p={...state.player,position:state.player.position.clone(),quaternion:state.player.quaternion.clone()};
+      const tick=state.tick,phase=state.phase,mode=state.mode,matchId=state.matchId,inputEpoch=state.inputEpoch;
+      const submitted=original.apply(this,args); // Exactly once, with untouched arguments.
+      if(submitted&&phase==='playing'){
+        const c=this.camera,diagnostics=this.diagnostics(),position=p.position.clone(),rotation=p.quaternion.clone();
+        view.getFlightCameraPose(p,mode,position,rotation);
+        const point=p.position.clone().set(0,0,-504.5).applyQuaternion(p.quaternion).add(p.position),ndc=point.clone().project(c);
+        const sight=gun.projectGunSight(p,[],diagnostics.width,diagnostics.height);
+        const actual=c.quaternion.toArray(),expected=rotation.toArray();
+        const rotationError=Math.min(...[1,-1].map(sign=>Math.max(...actual.map((value:number,index:number)=>Math.abs(value-sign*expected[index])))));
+        observation.samples.push({sequence:++observation.sequence,tick,phase,mode,matchId,inputEpoch,generation:p.generation,
+          pitch:p.pitch,yaw:p.yaw,positionError:position.distanceTo(c.position),rotationError,
+          sightPixelError:Math.max(Math.abs(sight.x-(.5+.5*ndc.x)*diagnostics.width),Math.abs(sight.y-(.5-.5*ndc.y)*diagnostics.height)),
+          calls:diagnostics.calls,queue:diagnostics.queue,camera:actual});
+        if(observation.samples.length>32)observation.samples.shift();
+      }
+      return submitted;
+    };
+    (window as any).__cameraObservation=observation;
   });
-  await expect.poll(async()=>{const s=await read();return s.phase==='playing'&&s.tick>2;}).toBe(true);
-  await page.locator('#flight').focus();const initial=await read();await page.keyboard.down('ArrowUp');
-  await expect.poll(async()=>(await read()).pitch).toBeGreaterThan(initial.pitch+.03);
-  await page.keyboard.down('ArrowRight');await page.keyboard.up('ArrowUp');
-  await expect.poll(async()=>(await read()).yaw).toBeLessThan(initial.yaw-.015);
-  const turning=await read();await expect.poll(async()=>(await read()).tick).toBeGreaterThan(turning.tick+8);const held=await read();
-  expect(held.matchId).toBe(initial.matchId);expect(held.generation).toBe(initial.generation);expect(held.phase).toBe('playing');
-  expect(held.pitch).toBeCloseTo(turning.pitch,10);expect(held.yaw).toBeLessThan(turning.yaw);expect(held.calls).toBeGreaterThan(0);
-  await expect.poll(async()=>(await read()).positionError).toBeLessThan(1e-9);
-  await expect.poll(async()=>(await read()).rotationError).toBeLessThan(1e-12);
-  if(mode==='normal')await expect.poll(async()=>(await read()).sightPixelError).toBeLessThan(1e-8);
-  console.log(JSON.stringify({sourceCommit:cameraSourceCommit,mode,viewport,initial,turning,held,pose:await read()}));
-  await page.keyboard.up('ArrowRight');await page.locator('#pause').click();const paused=await read();
-  await page.locator('#pause-controls').click();await page.locator('#control-cancel').click();
-  expect((await read()).phase).toBe('paused');expect((await read()).tick).toBe(paused.tick);
+  const live=()=>page.evaluate(()=>{
+    const h=(window as any).__nusumidase,o=(window as any).__cameraObservation;
+    return {tick:h.state.tick,phase:h.state.phase,pauseReason:h.state.pauseReason,sequence:o.sequence,queue:h.scene.diagnostics().queue};
+  });
+  const next=async(afterTick:number,afterSequence:number,limits:{minPitch?:number;maxYaw?:number}={})=>{
+    const handle=await page.waitForFunction(({afterTick,afterSequence,limits})=>{
+      const h=(window as any).__nusumidase,o=(window as any).__cameraObservation,s=o.samples.at(-1);
+      if(h.state.phase==='paused')throw new Error(JSON.stringify({reason:h.state.pauseReason,tick:h.state.tick,queue:h.scene.diagnostics().queue}));
+      if(!s||s.phase!=='playing'||s.tick<=afterTick||s.sequence<=afterSequence)return false;
+      if(limits.minPitch!==undefined&&s.pitch<=limits.minPitch)return false;
+      if(limits.maxYaw!==undefined&&s.yaw>=limits.maxYaw)return false;
+      return s;
+    },{afterTick,afterSequence,limits},{timeout:10000,polling:'raf'});
+    try{return await handle.jsonValue();}finally{await handle.dispose();}
+  };
+  try{
+    await page.locator(`input[name="game-mode"][value="${mode}"]`).check();await page.locator('#start').click();
+    await page.locator('#flight').focus();const initial=await next(2,0);
+    await page.keyboard.down('ArrowUp');await next(initial.tick,initial.sequence,{minPitch:initial.pitch+.03});
+    await page.keyboard.down('ArrowRight');await page.keyboard.up('ArrowUp');
+    // Both a strictly later product tick and a later submitted frame are needed
+    // after keyup; never compare a pre-keyup cached observation to held input.
+    const released=await live();const turning=await next(released.tick,released.sequence,{maxYaw:initial.yaw-.015});
+    const held=await next(turning.tick+8,turning.sequence);
+    expect(held.matchId).toBe(initial.matchId);expect(held.generation).toBe(initial.generation);expect(held.phase).toBe('playing');
+    expect(held.pitch).toBeCloseTo(turning.pitch,10);expect(held.yaw).toBeLessThan(turning.yaw);expect(held.calls).toBeGreaterThan(0);
+    const samples=await page.evaluate(()=>(window as any).__cameraObservation.samples);
+    for(const sample of samples){
+      expect(sample.positionError).toBeLessThan(1e-9);expect(sample.rotationError).toBeLessThan(1e-12);
+      if(mode==='normal')expect(sample.sightPixelError).toBeLessThan(1e-8);
+    }
+    expect((await live()).phase).toBe('playing');await page.keyboard.up('ArrowRight');
+    await page.locator('#pause').click({timeout:5000});const paused=await live();
+    expect(paused.phase).toBe('paused');expect(paused.pauseReason).toBe('時計・復活・装填も停止しています');
+    await page.locator('#pause-controls').click();await page.locator('#control-cancel').click();
+    expect((await live()).phase).toBe('paused');expect((await live()).tick).toBe(paused.tick);
+  }finally{
+    if(!page.isClosed()){
+      const evidence=await page.evaluate(()=>{
+        const o=(window as any).__cameraObservation,h=(window as any).__nusumidase;
+        o.restore();return {observedFrames:o.sequence,lastSamples:o.samples.slice(-4),live:{phase:h.state.phase,tick:h.state.tick,pauseReason:h.state.pauseReason,queue:h.scene.diagnostics().queue}};
+      });
+      console.log(JSON.stringify({sourceCommit:cameraSourceCommit,mode,viewport,...evidence}));
+    }
+  }
 });
 }
