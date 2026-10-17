@@ -339,10 +339,62 @@ const cameraTest = test.extend({ screenshot: 'off' as const, trace: 'off' as con
 for (const mode of ['normal', 'easy'] as const) for (const viewport of [
   {width:393,height:852},{width:393,height:648},{width:568,height:320},{width:852,height:393},{width:1280,height:720},
 ]) cameraTest(`@camera-controls live ${mode} ${viewport.width}x${viewport.height}`, async ({page}) => {
-  await page.setViewportSize(viewport);await page.goto('/?review');
-  await expect(page.locator('#start')).toBeEnabled();
+  await page.setViewportSize(viewport);
   let startupReadiness:any=null;
   try{
+  // Passive callback elapsed timing (includes GC/OS delays): retain rAF timestamp, receiver,
+  // handle, callback return/exception and registration count. No new frame.
+  await page.addInitScript(()=>{
+    const original=window.requestAnimationFrame;
+    const timeline={frames:[] as any[],events:[] as any[],firstPause:null as any,
+      currentSequence:null as number|null,productSequence:null as number|null,observationErrors:0,restore:()=>{}};
+    (window as any).__cameraFrameTimeline=timeline;
+    let active=true,sequence=0;
+    const snapshot=()=>{
+      const h=(window as any).__nusumidase;
+      return {tick:h?.state.tick,phase:h?.state.phase,screen:h?.screen,
+        hudHidden:document.getElementById('hud')?.hidden,homeHidden:document.getElementById('home')?.hidden,
+        focused:document.activeElement?.id,documentHidden:document.hidden};
+    };
+    const append=(buffer:any[],value:any)=>{buffer.push(value);if(buffer.length>32)buffer.shift();};
+    const wrapped=function(this:Window,callback:FrameRequestCallback){
+      return original.call(this,function(this:unknown,timestamp:number){
+        if(!active)return callback.call(this,timestamp);
+        const entered=performance.now();
+        const currentSequence=++sequence,previousSequence=timeline.currentSequence;timeline.currentSequence=currentSequence;
+        let before:any=null;
+        try{before=snapshot();}catch{timeline.observationErrors++;}
+        const started=performance.now();
+        try{return callback.call(this,timestamp);}finally{
+          const ended=performance.now();
+          try{
+            if(timeline.productSequence===currentSequence){
+              const after=snapshot();
+              append(timeline.frames,{sequence:currentSequence,timestamp,entered,started,ended,callbackElapsedMs:ended-started,callbackEntryLagMs:entered-timestamp,observerBeforeMs:started-entered,before,after});
+              if(after.phase==='paused'&&!timeline.firstPause)timeline.firstPause={frames:[...timeline.frames],events:[...timeline.events]};
+            }
+          }catch{timeline.observationErrors++;}
+          finally{timeline.currentSequence=previousSequence;}
+        }
+      });
+    };
+    const events=['pointerdown','pointerup','click','focusin','focusout','visibilitychange','blur','focus'];
+    const record=(stage:string,event:Event)=>{
+      if(!active)return;
+      try{append(timeline.events,{type:event.type,stage,eventTime:event.timeStamp,observedTime:performance.now(),
+        target:(event.target as Element|null)?.id??null,...snapshot()});}
+      catch{timeline.observationErrors++;}
+    };
+    const capture=(event:Event)=>record('capture',event),bubble=(event:Event)=>record('bubble',event);
+    timeline.restore=()=>{
+      active=false;if(window.requestAnimationFrame===wrapped)window.requestAnimationFrame=original;
+      for(const type of events){window.removeEventListener(type,capture,true);window.removeEventListener(type,bubble,false);}
+    };
+    window.requestAnimationFrame=wrapped;
+    for(const type of events){window.addEventListener(type,capture,true);window.addEventListener(type,bubble,false);}
+  });
+  await page.goto('/?review');
+  await expect(page.locator('#start')).toBeEnabled();
   // Observe only real render submissions. A pending GPU fence deliberately lets
   // simulation advance without updating the camera, so an arbitrary rAF's live
   // state is not the state that produced the currently submitted view.
@@ -382,10 +434,14 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
     scene.pollRender=function(...args:any[]){
       // Capture even when the previous frame paused and returned before render,
       // including a failed/stalled fence or a pause while submission is pending.
-      if(typeof args[0]==='number')capturePause();
+      if(typeof args[0]==='number'){
+        const t=(window as any).__cameraFrameTimeline;
+        if(t)t.productSequence=t.currentSequence;
+        capturePause();
+      }
       const before=performance.now(),result=originalPoll.apply(this,args);
       if(typeof args[0]==='number'){
-        currentFrame={nowMs:args[0],rawRafDeltaMs:lastFrameTime===null?null:args[0]-lastFrameTime,
+        currentFrame={callbackSequence:(window as any).__cameraFrameTimeline?.currentSequence,nowMs:args[0],rawRafDeltaMs:lastFrameTime===null?null:args[0]-lastFrameTime,
           tickBefore:h.state.tick,phaseBefore:h.state.phase,matchId:h.state.matchId,screen:h.screen,status:result,pollMs:performance.now()-before};
         lastFrameTime=args[0];observation.frameSamples.push(currentFrame);
         if(observation.frameSamples.length>32)observation.frameSamples.shift();
@@ -506,10 +562,11 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
   }finally{
     if(!page.isClosed()){
       const evidence=await page.evaluate(()=>{
-        const o=(window as any).__cameraObservation,h=(window as any).__nusumidase;
-        if(!o)return {observationUnavailable:true};
+        const o=(window as any).__cameraObservation,h=(window as any).__nusumidase,t=(window as any).__cameraFrameTimeline;
+        t?.restore();const timeline=t?{frames:t.frames,events:t.events,firstPause:t.firstPause,observationErrors:t.observationErrors}:null;
+        if(!o)return {observationUnavailable:true,timeline};
         o.restore();const metrics=h.metrics;
-        return {observedFrames:o.sequence,maxObservationMs:o.maxObservationMs,maxOriginalRenderMs:o.maxOriginalRenderMs,
+        return {timeline,observedFrames:o.sequence,maxObservationMs:o.maxObservationMs,maxOriginalRenderMs:o.maxOriginalRenderMs,
           maxWebGLMs:o.maxWebGLMs,maxOverlayMs:o.maxOverlayMs,backend:o.backend,firstPause:o.firstPause,
           frameSamples:o.frameSamples,frameTimes:metrics.frameTimes.slice(-32),updateTimes:metrics.updateTimes.slice(-32),
           lastSamples:o.samples.slice(-4),live:{phase:h.state.phase,tick:h.state.tick,pauseReason:h.state.pauseReason,queue:h.scene.diagnostics().queue}};
