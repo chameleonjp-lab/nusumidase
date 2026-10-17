@@ -236,3 +236,114 @@ test('carried-core death and exact respawn discard the old held-steering generat
   const target=getPlayerTargetSpeed(state);stepFixed(state,{...neutral,steeringActive:true});stepFixed(state,{...neutral,throttle:1,steeringActive:true});assert.equal(getPlayerTargetSpeed(state),target);
   acknowledgeInputReset(state,state.inputEpoch);stepFixed(state,{...neutral,throttle:1,steeringActive:true});assert.ok(getPlayerTargetSpeed(state)>target);assert.equal(stateInvariantError(state),null);
 });
+
+// Exercise the actual DOM update functions without importing main's RAF/bootstrap.
+// Parsing declarations keeps this tied to production code rather than a copied setter.
+async function hudHarness(state: GameState) {
+  const { readFileSync } = await import('node:fs');
+  const { createContext, runInContext } = await import('node:vm');
+  const ts = await import('typescript');
+  const { boundaryWarning } = await import('../src/arena');
+  const { carriedFlagFor } = await import('../src/flags');
+  const { isAlive } = await import('../src/respawn');
+  const { LOW_ALTITUDE_WARNING } = await import('../src/mission');
+  const source = ts.createSourceFile('main.ts', readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8'), ts.ScriptTarget.Latest, true);
+  const names = ['setStatusText', 'setStatusHidden', 'setStatusAttribute', 'formatTime', 'flagText', 'updateHUD', 'syncAudio'];
+  const functions = source.statements.filter(node => ts.isFunctionDeclaration(node) && names.includes(node.name?.text ?? ''));
+  assert.equal(functions.length, names.length);
+  const code = ts.transpileModule(functions.map(node => node.getText(source)).join('\n'), {compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;
+  const writes: string[] = [], nodes = new Map<string, any>();
+  const ids = ['timer','friendly-captures','enemy-captures','friendly-flag','enemy-flag','health','health-bar','altitude','speed','target-speed','allies-count','mg-ammo','cannon-ammo','reload-status','loop-status','loop','carrier-status','lifecycle-status','ally-announcements','warning','announcement','home-sound','game-sound'];
+  for (const id of ids) {
+    const values: any = {textContent:'',hidden:false,disabled:false,width:''}, attributes = new Map<string,string>();
+    const node: any = {style:{},getAttribute:(name:string)=>attributes.get(name)??null,setAttribute:(name:string,value:string)=>{writes.push(`${id}:${name}`);attributes.set(name,value);}};
+    for (const key of ['textContent','hidden','disabled']) Object.defineProperty(node,key,{get:()=>values[key],set:value=>{writes.push(`${id}:${key}`);values[key]=value;}});
+    Object.defineProperty(node.style,'width',{get:()=>values.width,set:value=>{writes.push(`${id}:width`);values.width=value;}});
+    nodes.set(id,node);
+  }
+  const el = (id:string) => {assert.ok(nodes.has(id), `unexpected UI target ${id}`);return nodes.get(id);};
+  const audio = {active:false,enabled:false,syncCalls:0,sync(){this.syncCalls++;}};
+  const document = {hidden:false};
+  const context = createContext({state,el,buttons:{loop:el('loop')},audio,document,screen:'playing',contextLost:false,
+    lastAudioActive:null,lastAudioEnabled:null,notificationUntilTick:0,MATCH_PLAY_TICKS,LOW_ALTITUDE_WARNING,
+    BASE_POSITIONS,boundaryWarning,carriedFlagFor,isAlive,isProtected,getPlayerTargetSpeed});
+  runInContext(code,context);
+  return {nodes,writes,audio,document,context,
+    update:()=>runInContext('updateHUD(); syncAudio();',context),
+    sync:(force=false)=>runInContext(`syncAudio(${force});`,context)};
+}
+
+test('live HUD values stay current while unchanged frames perform zero DOM writes', async () => {
+  for (const mode of ['normal','easy'] as const) {
+    const state=createGame(5,mode);startGame(state);
+    const h=await hudHarness(state),node=(id:string)=>h.nodes.get(id);
+    h.update();
+    assert.equal(node('timer').textContent,'12:00');assert.equal(node('health').textContent,'100');
+    assert.equal(node('health-bar').style.width,'100%');assert.equal(node('friendly-flag').textContent,'基地に待機');
+    assert.equal(node('mg-ammo').textContent,'288');assert.equal(node('cannon-ammo').textContent,'96');
+    assert.equal(node('reload-status').hidden,true);assert.equal(node('carrier-status').hidden,true);
+    h.writes.length=0;const before=JSON.stringify(state);for(let i=0;i<60;i++)h.update();
+    assert.deepEqual(h.writes,[]);assert.equal(JSON.stringify(state),before);
+    state.playTicks=61;state.player.health=40;state.player.mg=9;state.player.cannon=3;
+    state.player.reloadTicksRemaining=120;state.player.loopCooldown=2.5;state.player.position.y=40;
+    state.scores.friendly=1;state.flags.enemy={...state.flags.enemy,state:'carried',carrier:aircraftRef(state,state.player)};
+    h.update();assert.equal(node('timer').textContent,'11:59');assert.equal(node('health').textContent,'50');
+    assert.equal(node('health-bar').style.width,'50%');assert.equal(node('friendly-captures').textContent,'1');
+    assert.equal(node('enemy-flag').textContent,'味方が携行');assert.equal(node('mg-ammo').textContent,'9');
+    assert.equal(node('cannon-ammo').textContent,'3');assert.equal(node('reload-status').textContent,'再装填 2秒');
+    assert.equal(node('reload-status').hidden,false);assert.equal(node('loop-status').textContent,'2.5秒');
+    assert.equal(node('loop').disabled,true);assert.equal(node('carrier-status').hidden,false);
+    assert.match(node('carrier-status').textContent,/敵コア携行中\n自基地/);assert.equal(node('warning').hidden,false);
+    assert.equal(node('warning').textContent,'低空注意 · 機首を上げて');
+    // A live-DOM comparison repairs external/settings changes; no stale cache.
+    node('mg-ammo').textContent='stale';node('carrier-status').hidden=true;node('health-bar').style.width='0%';
+    h.update();assert.equal(node('mg-ammo').textContent,'9');assert.equal(node('carrier-status').hidden,false);
+    assert.equal(node('health-bar').style.width,'50%');
+    h.writes.length=0;h.update();assert.deepEqual(h.writes,[]);
+    state.player.health=0;state.player.lifecycle='respawnPending';state.player.respawnDuePlayTick=state.playTicks+480;
+    h.update();assert.equal(node('lifecycle-status').hidden,false);assert.equal(node('lifecycle-status').textContent,'撃墜 · 復活まで 8秒');
+    assert.equal(node('warning').hidden,true);assert.equal(node('loop').disabled,true);
+    state.player.health=80;state.player.lifecycle='active';state.player.protectionUntilPlayTick=state.playTicks+120;
+    h.update();assert.equal(node('lifecycle-status').textContent,'復活保護 2秒');
+  }
+});
+
+test('sound button text and accessibility attributes reflect toggles and live DOM repairs', async () => {
+  const h=await hudHarness(playing()),home=h.nodes.get('home-sound'),game=h.nodes.get('game-sound');
+  h.sync();assert.equal(game.textContent,'音 OFF');assert.equal(game.getAttribute('aria-pressed'),'false');
+  assert.equal(home.textContent,'音をオンにする');assert.equal(game.getAttribute('aria-label'),'音をオンにする');
+  h.writes.length=0;const calls=h.audio.syncCalls;h.sync();assert.deepEqual(h.writes,[]);assert.equal(h.audio.syncCalls,calls);
+  h.audio.enabled=true;h.sync();assert.equal(game.textContent,'音 ON');assert.equal(home.textContent,'音をオフにする');
+  assert.equal(home.getAttribute('aria-pressed'),'true');assert.equal(game.getAttribute('aria-label'),'音をオフにする');
+  home.setAttribute('aria-label','stale');game.textContent='stale';h.sync();
+  assert.equal(home.getAttribute('aria-label'),'音をオフにする');assert.equal(game.textContent,'音 ON');
+  h.document.hidden=true;h.sync();assert.equal(h.audio.active,false);assert.equal(h.audio.syncCalls,calls+2);
+  h.writes.length=0;h.sync();assert.deepEqual(h.writes,[]);
+});
+
+
+test('HUD rounding, notification expiry and restoration keep their original transitions', async () => {
+  const state=playing(),h=await hudHarness(state),node=(id:string)=>h.nodes.get(id);
+  h.update();h.writes.length=0;state.player.mg--;
+  h.update();assert.deepEqual(h.writes,['mg-ammo:textContent']);
+  for (const [tick,text] of [[0,'12:00'],[59,'12:00'],[60,'11:59'],[61,'11:59'],[MATCH_PLAY_TICKS-1,'00:01'],[MATCH_PLAY_TICKS,'00:00']] as const) {
+    state.playTicks=tick;h.update();assert.equal(node('timer').textContent,text);
+  }
+  for (const [ticks,text,hidden] of [[61,'再装填 2秒',false],[60,'再装填 1秒',false],[1,'再装填 1秒',false],[0,'再装填 0秒',true]] as const) {
+    state.player.reloadTicksRemaining=ticks;h.update();assert.equal(node('reload-status').textContent,text);assert.equal(node('reload-status').hidden,hidden);
+  }
+  for (const [health,text] of [[80,'100'],[79.2,'99'],[79.20001,'100'],[0,'0'],[-1,'0']] as const) {
+    state.player.health=health;h.update();assert.equal(node('health').textContent,text);assert.equal(node('health-bar').style.width,`${text}%`);
+  }
+  state.player.health=80;state.player.position.y=300;state.player.position.x=2399;
+  h.update();assert.equal(node('warning').hidden,false);assert.equal(node('warning').textContent,'空域の境界に接近 · 内側へ旋回');
+  state.phase='paused';h.context.screen='paused';h.context.contextLost=true;h.update();assert.equal(node('loop').disabled,true);assert.equal(h.audio.active,false);
+  const pausedDisplay=[...h.nodes.values()].map(n=>[n.textContent,n.hidden,n.disabled,n.style.width]);
+  h.context.contextLost=false;h.update();assert.deepEqual([...h.nodes.values()].map(n=>[n.textContent,n.hidden,n.disabled,n.style.width]),pausedDisplay);
+  node('announcement').textContent='通知';h.context.notificationUntilTick=3;state.tick=2;h.update();assert.equal(node('announcement').textContent,'通知');
+  state.tick=3;h.update();assert.equal(node('announcement').textContent,'');assert.equal(h.context.notificationUntilTick,0);
+  // The expiry bookkeeping must still run when another writer already cleared the DOM.
+  h.context.notificationUntilTick=3;h.writes.length=0;h.update();assert.equal(h.context.notificationUntilTick,0);assert.deepEqual(h.writes,[]);
+  const calls=h.audio.syncCalls;h.sync(true);assert.equal(h.audio.syncCalls,calls+1);assert.deepEqual(h.writes,[]);
+  state.phase='playing';h.context.screen='playing';h.sync();assert.equal(h.audio.active,true);assert.equal(h.audio.syncCalls,calls+2);
+});
