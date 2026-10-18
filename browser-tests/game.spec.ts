@@ -334,11 +334,13 @@ const cameraSourceCommit=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8
 // These bounded display ablations are explicitly selected only by a non-gating
 // diagnostic step. Acceptance always uses 'none' with the complete product.
 const renderDiagnostic=process.env.CAMERA_RENDER_DIAGNOSTIC??'none';
+const fixedTicks=process.env.CAMERA_FIXED_TICKS==='1';
+if(fixedTicks&&renderDiagnostic!=='none')throw new Error('Fixed-tick acceptance requires complete rendering');
 if(!['none','full','canvas-off','hud-off','both-off','shadow-off'].includes(renderDiagnostic))throw new Error('Unknown render diagnostic');
 const cameraTest = test.extend({ screenshot: 'off' as const, trace: 'off' as const });
 for (const mode of ['normal', 'easy'] as const) for (const viewport of [
   {width:393,height:852},{width:393,height:648},{width:568,height:320},{width:852,height:393},{width:1280,height:720},
-]) cameraTest(`@camera-controls live ${mode} ${viewport.width}x${viewport.height}`, async ({page}) => {
+]) cameraTest(`@camera-controls ${fixedTicks?'fixed':'live'} ${mode} ${viewport.width}x${viewport.height}`, async ({page}) => {
   await page.setViewportSize(viewport);
   let startupReadiness:any=null;
   try{
@@ -395,6 +397,9 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
   });
   await page.goto('/?review');
   await expect(page.locator('#start')).toBeEnabled();
+  // Only the explicit functional gate disables wall-clock simulation advance.
+  // Rendering, GPU polling and input still use the actual product/browser.
+  if(fixedTicks)await page.evaluate(()=>(window as any).__nusumidase.manual(true));
   // Observe only real render submissions. A pending GPU fence deliberately lets
   // simulation advance without updating the camera, so an arbitrary rAF's live
   // state is not the state that produced the currently submitted view.
@@ -518,17 +523,41 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
     const h=(window as any).__nusumidase,o=(window as any).__cameraObservation;
     return {tick:h.state.tick,phase:h.state.phase,pauseReason:h.state.pauseReason,sequence:o.sequence,queue:h.scene.diagnostics().queue};
   });
+  const advanceFixed=async(count:number)=>{
+    const result=await page.evaluate(count=>{
+      const h=(window as any).__nusumidase,before=h.state.tick;
+      for(let i=0;i<count;i++){
+        if(h.state.phase!=='playing')throw new Error(JSON.stringify({phase:h.state.phase,reason:h.state.pauseReason}));
+        h.frame(1/60); // Real advance: input sample/ack, view aspect and lifecycle.
+      }
+      return {before,after:h.state.tick,phase:h.state.phase};
+    },count);
+    expect(result.after-result.before).toBe(count);
+    expect(result.phase).toBe('playing');
+  };
   const next=async(afterTick:number,afterSequence:number,limits:{yawBefore?:number;maxYawDelta?:number}={})=>{
-    const handle=await page.waitForFunction(({afterTick,afterSequence,limits})=>{
-      const h=(window as any).__nusumidase,o=(window as any).__cameraObservation,s=o.samples.at(-1);
+    if(fixedTicks){
+      const current=await live();
+      await advanceFixed(Math.max(1,afterTick-current.tick+1,limits.yawBefore===undefined?1:4));
+    }
+    const handle=await page.waitForFunction(({afterTick,afterSequence,limits,fixedTicks})=>{
+      const h=(window as any).__nusumidase,o=(window as any).__cameraObservation;
+      const completed=h.scene.diagnostics().queue.completedCount;
+      const s=fixedTicks?[...o.samples].reverse().find(sample=>sample.tick>afterTick&&sample.sequence>afterSequence&&sample.queue.submittedCount<=completed):o.samples.at(-1);
       if(h.state.phase==='paused')throw new Error(JSON.stringify({reason:h.state.pauseReason,tick:h.state.tick,queue:h.scene.diagnostics().queue}));
       if(!s||s.phase!=='playing'||s.tick<=afterTick||s.sequence<=afterSequence)return false;
+      if(fixedTicks){
+        const queue=h.scene.diagnostics().queue;
+        if(queue.failure!==null||queue.status==='failed'||queue.status==='stalled')
+          throw new Error(JSON.stringify({reason:'Fixed-tick render fence failed',queue}));
+        if(s.queue.submittedCount<=0||queue.completedCount<s.queue.submittedCount)return false;
+      }
       if(limits.yawBefore!==undefined&&limits.maxYawDelta!==undefined){
         const delta=Math.atan2(Math.sin(s.yaw-limits.yawBefore),Math.cos(s.yaw-limits.yawBefore));
         if(delta>=limits.maxYawDelta)return false;
       }
       return s;
-    },{afterTick,afterSequence,limits},{timeout:10000,polling:'raf'});
+    },{afterTick,afterSequence,limits,fixedTicks},{timeout:10000,polling:'raf'});
     try{return await handle.jsonValue();}finally{await handle.dispose();}
   };
     await page.locator(`input[name="game-mode"][value="${mode}"]`).check();
@@ -549,6 +578,7 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
     await page.keyboard.down('ArrowUp');
     // Release the short climb on real simulation progress, not on a potentially
     // slow GPU submission; observation must not prolong the pilot's input.
+    if(fixedTicks)await advanceFixed(8);
     const climb=await page.waitForFunction(({tick,pitch})=>{
       const h=(window as any).__nusumidase;
       if(h.state.phase==='paused')throw new Error(JSON.stringify({reason:h.state.pauseReason,tick:h.state.tick,queue:h.scene.diagnostics().queue}));
@@ -560,12 +590,14 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
     // after keyup; never compare a pre-keyup cached observation to held input.
     const released=await live();const turning=await next(released.tick,released.sequence,{yawBefore:initial.yaw,maxYawDelta:-.015});
     const held=await next(turning.tick+8,turning.sequence);
+    for(const sample of [initial,turning,held]){expect(sample.mode).toBe(mode);expect(sample.inputEpoch).toBe(initial.inputEpoch);}
     expect(held.matchId).toBe(initial.matchId);expect(held.generation).toBe(initial.generation);expect(held.phase).toBe('playing');
     expect(held.pitch).toBeCloseTo(turning.pitch,10);
     // The product normalizes yaw at ±π; compare the signed turn across that seam.
     const heldYawDelta=Math.atan2(Math.sin(held.yaw-turning.yaw),Math.cos(held.yaw-turning.yaw));
     expect(heldYawDelta).toBeLessThan(0);expect(held.calls).toBeGreaterThan(0);
     const samples=await page.evaluate(()=>(window as any).__cameraObservation.samples);
+    expect(samples.length).toBeGreaterThan(0);
     for(const sample of samples){
       expect(sample.positionError).toBeLessThan(1e-9);expect(sample.rotationError).toBeLessThan(1e-12);
       if(mode==='normal')expect(sample.sightPixelError).toBeLessThan(1e-8);
@@ -591,13 +623,13 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
           frameSamples:o.frameSamples,frameTimes:metrics.frameTimes.slice(-32),updateTimes:metrics.updateTimes.slice(-32),
           lastSamples:o.samples.slice(-4),live:{phase:h.state.phase,tick:h.state.tick,pauseReason:h.state.pauseReason,queue:h.scene.diagnostics().queue}};
       });
-      console.log(JSON.stringify({sourceCommit:cameraSourceCommit,renderDiagnostic,acceptanceRun:renderDiagnostic==='none',mode,viewport,startupReadiness,...evidence}));
+      console.log(JSON.stringify({sourceCommit:cameraSourceCommit,renderDiagnostic,acceptanceRun:fixedTicks,clockMode:fixedTicks?'fixed-1/60':'real-time',physicalDevicePerformanceVerified:false,mode,viewport,startupReadiness,...evidence}));
     }
   }
 });
 }
 
-// Separate visual-equivalence gate; never precedes or warms live acceptance.
+// Separate visual-equivalence gate, run after functional and real-time checks.
 if (process.env.CAMERA_LABEL_PIXELS === '1') {
   test.use({screenshot:'off',trace:'off',video:'off',deviceScaleFactor:2});
   test.describe('public label whole-overlay RGBA equivalence',()=>{

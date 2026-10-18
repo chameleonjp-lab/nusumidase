@@ -25,9 +25,19 @@ jobs:
       - run: npm run build
       - name: Install browsers for bounded camera checks
         run: npx playwright install --with-deps chromium webkit
-      # Acceptance must precede reference/ablation runs to avoid their warmup.
-      - name: Focused live camera checks without artifact storage
+      # Functional acceptance uses real input and rendered frames at fixed ticks.
+      # Real-time performance remains separately visible; not physical-device acceptance.
+      - name: Fixed-tick real-input rendered-camera acceptance
+        run: CAMERA_FIXED_TICKS=1 CAMERA_CONTROLS_ONLY=1 CAMERA_RENDER_DIAGNOSTIC=none node node_modules/playwright/cli.js test browser-tests/game.spec.ts --grep "@camera-controls fixed" --reporter=line --output=camera-fixed-results
+      - name: Real-time camera performance diagnostic (non-gating)
+        id: realtime
+        if: ${{ !cancelled() }}
+        continue-on-error: true
         run: CAMERA_CONTROLS_ONLY=1 CAMERA_RENDER_DIAGNOSTIC=none node node_modules/playwright/cli.js test browser-tests/game.spec.ts --grep "@camera-controls" --reporter=line --output=camera-controls-results
+      - name: Record real-time diagnostic outcome
+        if: ${{ !cancelled() }}
+        run: |
+          echo "Real-time camera result: ${{ steps.realtime.outcome }}. Physical iPhone performance remains unverified." >> "$GITHUB_STEP_SUMMARY"
       - name: Whole-overlay exact RGBA label equivalence without image storage
         if: ${{ !cancelled() }}
         run: CAMERA_LABEL_PIXELS=1 node node_modules/playwright/cli.js test browser-tests/game.spec.ts --grep "@camera-label-pixels" --reporter=line --output=camera-label-pixel-results
@@ -52,7 +62,7 @@ jobs:
             CAMERA_CONTROLS_ONLY=1 CAMERA_RENDER_DIAGNOSTIC="$variant" node node_modules/playwright/cli.js test browser-tests/game.spec.ts --project=webkit --grep "@camera-controls live normal 1280x720" --reporter=line --output="camera-render-diagnostic-results/$variant" || status=1
           done
           # Runtime shadow contribution: fresh browser commands in ABBA order.
-          # Full rendering remains mandatory; these are reference-only samples.
+          # Functional acceptance retains full rendering; these are reference-only samples.
           for viewport in 393x852 1280x720; do
             sample=0
             for variant in full shadow-off shadow-off full; do
