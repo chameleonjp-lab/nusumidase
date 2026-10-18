@@ -213,3 +213,256 @@ test('30/60/120Hz frame segmentation gives the same authoritative simulation tra
   }
   assert.equal(traces[0].tick, 600); assert.equal(deterministicSnapshot(traces[0]), deterministicSnapshot(traces[1])); assert.equal(deterministicSnapshot(traces[1]), deterministicSnapshot(traces[2]));
 });
+
+test('zero-axis steering owner cannot falsely release an input-generation gate',()=>{
+  const state=playing();pauseGame(state);resumeGame(state);
+  const before=getPlayerTargetSpeed(state);
+  stepFixed(state,{...neutral,steeringActive:true});
+  stepFixed(state,{...neutral,throttle:1,steeringActive:true});assert.equal(getPlayerTargetSpeed(state),before);
+  assert.equal(acknowledgeInputReset(state,state.inputEpoch),true);
+  stepFixed(state,{...neutral,throttle:1,steeringActive:true});assert.ok(getPlayerTargetSpeed(state)>before);
+});
+
+test('carried-core death and exact respawn discard the old held-steering generation',()=>{
+  const state=playing(),player=state.player;place(player,new Vector3(0,500,600));
+  state.flags.enemy={...state.flags.enemy,state:'carried',carrier:aircraftRef(state,player)};
+  const epoch=state.inputEpoch;queueDamageEvent(state,killEvent(state,player));stepFixed(state,{...neutral,turn:.4,steeringActive:true});
+  const dropped=state.flags.enemy,deathPosition=getFlagPosition(state,'enemy').clone();
+  assert.equal(dropped.state,'dropped');assert.ok(state.inputEpoch>epoch);assert.equal(player.lifecycle,'respawnPending');
+  const deathEpoch=state.inputEpoch,generation=player.generation;
+  state.playTicks=player.respawnDuePlayTick!-1;stepFixed(state,{...neutral,turn:.4,steeringActive:true});
+  assert.equal(player.generation,generation+1);assert.equal(player.lifecycle,'active');assert.ok(state.inputEpoch>deathEpoch);
+  assert.equal(acknowledgeInputReset(state,deathEpoch),false);assert.deepEqual(getFlagPosition(state,'enemy'),deathPosition);assert.equal(state.flags.enemy,dropped);
+  const target=getPlayerTargetSpeed(state);stepFixed(state,{...neutral,steeringActive:true});stepFixed(state,{...neutral,throttle:1,steeringActive:true});assert.equal(getPlayerTargetSpeed(state),target);
+  acknowledgeInputReset(state,state.inputEpoch);stepFixed(state,{...neutral,throttle:1,steeringActive:true});assert.ok(getPlayerTargetSpeed(state)>target);assert.equal(stateInvariantError(state),null);
+});
+
+// Exercise the actual DOM update functions without importing main's RAF/bootstrap.
+// Parsing declarations keeps this tied to production code rather than a copied setter.
+async function hudHarness(state: GameState) {
+  const { readFileSync } = await import('node:fs');
+  const { createContext, runInContext } = await import('node:vm');
+  const ts = await import('typescript');
+  const { boundaryWarning } = await import('../src/arena');
+  const { carriedFlagFor } = await import('../src/flags');
+  const { isAlive } = await import('../src/respawn');
+  const { LOW_ALTITUDE_WARNING } = await import('../src/mission');
+  const source = ts.createSourceFile('main.ts', readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8'), ts.ScriptTarget.Latest, true);
+  const names = ['setStatusText', 'setStatusHidden', 'setStatusAttribute', 'formatTime', 'flagText', 'updateHUD', 'syncAudio'];
+  const functions = source.statements.filter(node => ts.isFunctionDeclaration(node) && names.includes(node.name?.text ?? ''));
+  assert.equal(functions.length, names.length);
+  const code = ts.transpileModule(functions.map(node => node.getText(source)).join('\n'), {compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;
+  const writes: string[] = [], nodes = new Map<string, any>();
+  const ids = ['timer','friendly-captures','enemy-captures','friendly-flag','enemy-flag','health','health-bar','altitude','speed','target-speed','allies-count','mg-ammo','cannon-ammo','reload-status','loop-status','loop','carrier-status','lifecycle-status','ally-announcements','warning','announcement','home-sound','game-sound'];
+  for (const id of ids) {
+    const values: any = {textContent:'',hidden:false,disabled:false,width:''}, attributes = new Map<string,string>();
+    const node: any = {style:{},getAttribute:(name:string)=>attributes.get(name)??null,setAttribute:(name:string,value:string)=>{writes.push(`${id}:${name}`);attributes.set(name,value);}};
+    for (const key of ['textContent','hidden','disabled']) Object.defineProperty(node,key,{get:()=>values[key],set:value=>{writes.push(`${id}:${key}`);values[key]=value;}});
+    Object.defineProperty(node.style,'width',{get:()=>values.width,set:value=>{writes.push(`${id}:width`);values.width=value;}});
+    nodes.set(id,node);
+  }
+  const el = (id:string) => {assert.ok(nodes.has(id), `unexpected UI target ${id}`);return nodes.get(id);};
+  const audio = {active:false,enabled:false,syncCalls:0,sync(){this.syncCalls++;}};
+  const document = {hidden:false};
+  const context = createContext({state,el,buttons:{loop:el('loop')},audio,document,screen:'playing',contextLost:false,
+    lastAudioActive:null,lastAudioEnabled:null,notificationUntilTick:0,MATCH_PLAY_TICKS,LOW_ALTITUDE_WARNING,
+    BASE_POSITIONS,boundaryWarning,carriedFlagFor,isAlive,isProtected,getPlayerTargetSpeed});
+  runInContext(code,context);
+  return {nodes,writes,audio,document,context,
+    update:()=>runInContext('updateHUD(); syncAudio();',context),
+    sync:(force=false)=>runInContext(`syncAudio(${force});`,context)};
+}
+
+test('live HUD values stay current while unchanged frames perform zero DOM writes', async () => {
+  for (const mode of ['normal','easy'] as const) {
+    const state=createGame(5,mode);startGame(state);
+    const h=await hudHarness(state),node=(id:string)=>h.nodes.get(id);
+    h.update();
+    assert.equal(node('timer').textContent,'12:00');assert.equal(node('health').textContent,'100');
+    assert.equal(node('health-bar').style.width,'100%');assert.equal(node('friendly-flag').textContent,'基地に待機');
+    assert.equal(node('mg-ammo').textContent,'288');assert.equal(node('cannon-ammo').textContent,'96');
+    assert.equal(node('reload-status').hidden,true);assert.equal(node('carrier-status').hidden,true);
+    h.writes.length=0;const before=JSON.stringify(state);for(let i=0;i<60;i++)h.update();
+    assert.deepEqual(h.writes,[]);assert.equal(JSON.stringify(state),before);
+    state.playTicks=61;state.player.health=40;state.player.mg=9;state.player.cannon=3;
+    state.player.reloadTicksRemaining=120;state.player.loopCooldown=2.5;state.player.position.y=40;
+    state.scores.friendly=1;state.flags.enemy={...state.flags.enemy,state:'carried',carrier:aircraftRef(state,state.player)};
+    h.update();assert.equal(node('timer').textContent,'11:59');assert.equal(node('health').textContent,'50');
+    assert.equal(node('health-bar').style.width,'50%');assert.equal(node('friendly-captures').textContent,'1');
+    assert.equal(node('enemy-flag').textContent,'味方が携行');assert.equal(node('mg-ammo').textContent,'9');
+    assert.equal(node('cannon-ammo').textContent,'3');assert.equal(node('reload-status').textContent,'再装填 2秒');
+    assert.equal(node('reload-status').hidden,false);assert.equal(node('loop-status').textContent,'2.5秒');
+    assert.equal(node('loop').disabled,true);assert.equal(node('carrier-status').hidden,false);
+    assert.match(node('carrier-status').textContent,/敵コア携行中\n自基地/);assert.equal(node('warning').hidden,false);
+    assert.equal(node('warning').textContent,'低空注意 · 機首を上げて');
+    // A live-DOM comparison repairs external/settings changes; no stale cache.
+    node('mg-ammo').textContent='stale';node('carrier-status').hidden=true;node('health-bar').style.width='0%';
+    h.update();assert.equal(node('mg-ammo').textContent,'9');assert.equal(node('carrier-status').hidden,false);
+    assert.equal(node('health-bar').style.width,'50%');
+    h.writes.length=0;h.update();assert.deepEqual(h.writes,[]);
+    state.player.health=0;state.player.lifecycle='respawnPending';state.player.respawnDuePlayTick=state.playTicks+480;
+    h.update();assert.equal(node('lifecycle-status').hidden,false);assert.equal(node('lifecycle-status').textContent,'撃墜 · 復活まで 8秒');
+    assert.equal(node('warning').hidden,true);assert.equal(node('loop').disabled,true);
+    state.player.health=80;state.player.lifecycle='active';state.player.protectionUntilPlayTick=state.playTicks+120;
+    h.update();assert.equal(node('lifecycle-status').textContent,'復活保護 2秒');
+  }
+});
+
+test('sound button text and accessibility attributes reflect toggles and live DOM repairs', async () => {
+  const h=await hudHarness(playing()),home=h.nodes.get('home-sound'),game=h.nodes.get('game-sound');
+  h.sync();assert.equal(game.textContent,'音 OFF');assert.equal(game.getAttribute('aria-pressed'),'false');
+  assert.equal(home.textContent,'音をオンにする');assert.equal(game.getAttribute('aria-label'),'音をオンにする');
+  h.writes.length=0;const calls=h.audio.syncCalls;h.sync();assert.deepEqual(h.writes,[]);assert.equal(h.audio.syncCalls,calls);
+  h.audio.enabled=true;h.sync();assert.equal(game.textContent,'音 ON');assert.equal(home.textContent,'音をオフにする');
+  assert.equal(home.getAttribute('aria-pressed'),'true');assert.equal(game.getAttribute('aria-label'),'音をオフにする');
+  home.setAttribute('aria-label','stale');game.textContent='stale';h.sync();
+  assert.equal(home.getAttribute('aria-label'),'音をオフにする');assert.equal(game.textContent,'音 ON');
+  h.document.hidden=true;h.sync();assert.equal(h.audio.active,false);assert.equal(h.audio.syncCalls,calls+2);
+  h.writes.length=0;h.sync();assert.deepEqual(h.writes,[]);
+});
+
+
+test('HUD rounding, notification expiry and restoration keep their original transitions', async () => {
+  const state=playing(),h=await hudHarness(state),node=(id:string)=>h.nodes.get(id);
+  h.update();h.writes.length=0;state.player.mg--;
+  h.update();assert.deepEqual(h.writes,['mg-ammo:textContent']);
+  for (const [tick,text] of [[0,'12:00'],[59,'12:00'],[60,'11:59'],[61,'11:59'],[MATCH_PLAY_TICKS-1,'00:01'],[MATCH_PLAY_TICKS,'00:00']] as const) {
+    state.playTicks=tick;h.update();assert.equal(node('timer').textContent,text);
+  }
+  for (const [ticks,text,hidden] of [[61,'再装填 2秒',false],[60,'再装填 1秒',false],[1,'再装填 1秒',false],[0,'再装填 0秒',true]] as const) {
+    state.player.reloadTicksRemaining=ticks;h.update();assert.equal(node('reload-status').textContent,text);assert.equal(node('reload-status').hidden,hidden);
+  }
+  for (const [health,text] of [[80,'100'],[79.2,'99'],[79.20001,'100'],[0,'0'],[-1,'0']] as const) {
+    state.player.health=health;h.update();assert.equal(node('health').textContent,text);assert.equal(node('health-bar').style.width,`${text}%`);
+  }
+  state.player.health=80;state.player.position.y=300;state.player.position.x=2399;
+  h.update();assert.equal(node('warning').hidden,false);assert.equal(node('warning').textContent,'空域の境界に接近 · 内側へ旋回');
+  state.phase='paused';h.context.screen='paused';h.context.contextLost=true;h.update();assert.equal(node('loop').disabled,true);assert.equal(h.audio.active,false);
+  const pausedDisplay=[...h.nodes.values()].map(n=>[n.textContent,n.hidden,n.disabled,n.style.width]);
+  h.context.contextLost=false;h.update();assert.deepEqual([...h.nodes.values()].map(n=>[n.textContent,n.hidden,n.disabled,n.style.width]),pausedDisplay);
+  node('announcement').textContent='通知';h.context.notificationUntilTick=3;state.tick=2;h.update();assert.equal(node('announcement').textContent,'通知');
+  state.tick=3;h.update();assert.equal(node('announcement').textContent,'');assert.equal(h.context.notificationUntilTick,0);
+  // The expiry bookkeeping must still run when another writer already cleared the DOM.
+  h.context.notificationUntilTick=3;h.writes.length=0;h.update();assert.equal(h.context.notificationUntilTick,0);assert.deepEqual(h.writes,[]);
+  const calls=h.audio.syncCalls;h.sync(true);assert.equal(h.audio.syncCalls,calls+1);assert.deepEqual(h.writes,[]);
+  state.phase='playing';h.context.screen='playing';h.sync();assert.equal(h.audio.active,true);assert.equal(h.audio.syncCalls,calls+2);
+});
+
+async function overlayPreparationHarness(state: GameState, visible: boolean) {
+  const { NusumidaseScene } = await import('../src/scene');
+  const { PerspectiveCamera } = await import('three');
+  const { getFlightCameraPose } = await import('../src/flight-view');
+  const scene:any=Object.create(NusumidaseScene.prototype), camera=new PerspectiveCamera(64,393/852,.5,22000);
+  getFlightCameraPose(state.player,state.mode,camera.position,camera.quaternion);camera.updateMatrixWorld();
+  const style:Record<string,unknown>={},stack:Record<string,unknown>[]=[];
+  const raster:any[][]=[],reads:any[]=[];let commands:any[]=[],failRead=0,readCount=0,failRedraw=false;
+  const methods:Record<string,any>={
+    clearRect:(...args:any[])=>{commands=[['clearRect',...args]];},
+    save:()=>{stack.push({...style});commands.push(['save']);},
+    restore:()=>{const saved=stack.pop();assert.ok(saved);for(const key of Object.keys(style))delete style[key];Object.assign(style,saved);commands.push(['restore']);},
+    getImageData:(...args:any[])=>{reads.push({args,commands:[...commands],pose:[...camera.position.toArray(),...camera.quaternion.toArray()]});if(++readCount===failRead)throw new Error('readback failed');return {data:new Uint8ClampedArray(0)};},
+  };
+  for(const name of ['beginPath','arc','moveTo','lineTo','stroke','fillRect','fillText','closePath','translate','fill','rect'])methods[name]=(...args:any[])=>commands.push([name,...args]);
+  const ctx=new Proxy(methods,{get:(target,key:string)=>key in target?target[key]:style[key],set:(_target,key:string,value)=>{style[key]=value;commands.push(['set',key,value]);return true;}});
+  Object.assign(scene,{camera,ctx,current:state,overlay:{width:393,height:852},width:393,height:852,overlayVisible:visible,overlayRevision:0,disposed:false,prepared:false});
+  const draw=scene.drawOverlay;
+  scene.drawOverlay=function(view:GameState,show:boolean){if(failRedraw&&view===state)throw new Error('redraw failed');const result=draw.call(this,view,show);raster.push([...commands]);return result;};
+  scene.drawOverlay(state,visible);
+  const snapshot=()=>JSON.stringify({position:camera.position.toArray(),quaternion:camera.quaternion.toArray(),matrix:camera.matrix.toArray(),world:camera.matrixWorld.toArray(),inverse:camera.matrixWorldInverse.toArray(),needsUpdate:camera.matrixWorldNeedsUpdate});
+  return {scene,camera,ctx,style,stack,raster,reads,snapshot,
+    failRead:(n:number)=>{failRead=n;},failRedraw:()=>{failRedraw=true;},getReadCount:()=>readCount};
+}
+
+test('Canvas2D preparation uses both real HUD paths and restores blank or paused display and exact camera',async()=>{
+  const { getFlightCameraPose }=await import('../src/flight-view');
+  for(const mode of ['normal','easy'] as const)for(const visible of [false,true])for(const dead of [false,true]){
+    const state=createGame(5,mode);if(visible){startGame(state);pauseGame(state);}
+    if(dead){state.player.lifecycle='respawnPending';state.player.health=0;state.player.respawnDuePlayTick=480;}
+    const h=await overlayPreparationHarness(state,visible);
+    // A restored/dead view may intentionally differ from the current plane pose.
+    h.camera.position.add(new Vector3(2,3,4));h.camera.rotateZ(.17);h.camera.updateMatrixWorld();
+    h.scene.drawOverlay(state,visible);const beforePixels=h.raster.at(-1),beforeCamera=h.snapshot(),beforeStyle={...h.style},beforeState=JSON.stringify(state);
+    h.scene.prepareOverlay();
+    assert.equal(h.reads.length,2);assert.deepEqual(h.reads.map(r=>r.args),[[0,0,393,852],[0,0,393,852]]);
+    for(const [i,warmMode] of (['normal','easy'] as const).entries()){
+      const position=state.player.position.clone(),quaternion=state.player.quaternion.clone();getFlightCameraPose(state.player,warmMode,position,quaternion);
+      assert.deepEqual(h.reads[i].pose,[...position.toArray(),...quaternion.toArray()]);
+      assert.ok(h.reads[i].commands.some((command:any[])=>command[0]==='fillText'));
+    }
+    assert.equal(h.snapshot(),beforeCamera);assert.deepEqual(h.raster.at(-1),beforePixels);assert.deepEqual(h.style,beforeStyle);assert.equal(h.stack.length,0);
+    assert.equal(JSON.stringify(state),beforeState);assert.equal(h.scene.current,state);assert.equal(h.scene.overlayVisible,visible);assert.equal(h.scene.prepared,false);
+  }
+});
+
+test('Canvas2D readback and redraw failures propagate while restoring camera/context and avoiding readiness',async()=>{
+  for(const visible of [false,true])for(const failAt of [1,2]){
+    const state=playing();pauseGame(state);const h=await overlayPreparationHarness(state,visible);
+    const pixels=h.raster.at(-1),camera=h.snapshot(),style={...h.style},before=JSON.stringify(state);h.failRead(failAt);
+    assert.throws(()=>h.scene.prepareOverlay(),/readback failed/);
+    assert.equal(h.snapshot(),camera);assert.deepEqual(h.raster.at(-1),pixels);assert.deepEqual(h.style,style);assert.equal(h.stack.length,0);
+    assert.equal(JSON.stringify(state),before);assert.equal(h.scene.prepared,false);
+  }
+  const h=await overlayPreparationHarness(playing(),true),camera=h.snapshot(),style={...h.style};h.failRead(1);h.failRedraw();
+  assert.throws(()=>h.scene.prepareOverlay(),/redraw failed/);assert.equal(h.snapshot(),camera);assert.deepEqual(h.style,style);assert.equal(h.stack.length,0);assert.equal(h.scene.prepared,false);
+});
+
+test('preparation warms the current backing store after compile/queued resize and awaits every clean GPU fence',async()=>{
+  const originalRAF=Object.getOwnPropertyDescriptor(globalThis,'requestAnimationFrame');
+  try{
+    for(const resizeStage of ['none','compile','pending','same-size','read-failure','fence-failure','disposed'] as const){
+      const state=playing();pauseGame(state);const h=await overlayPreparationHarness(state,true),s=h.scene,events:string[]=[];
+      let rect={width:393,height:852},submissions=0,polls=0,frames=0;
+      s.canvas={getBoundingClientRect:()=>rect};s.planes=new Map();s.flags={root:{visible:false}};s.scene={traverse:()=>{}};
+      s.particlePositions=new Float32Array(3);s.particleColors=new Float32Array(3);s.particleSizes=new Float32Array(1);s.particleOpacity=new Float32Array(1);
+      s.particleGeometry={attributes:{},setDrawRange:()=>{}};
+      s.aircraftTracers={prime:()=>{},update:()=>{},coreMaterial:{resolution:{set:()=>{}}},outlineMaterial:{resolution:{set:()=>{}}}};
+      s.renderer={compileAsync:async()=>{if(resizeStage==='compile'){rect={width:568,height:320};s.resize();}},render:()=>events.push('render'),setSize:()=>{}};
+      s.renderQueue={submit:()=>{assert.equal(s.prepared,false);submissions++;events.push('submit');polls=0;},poll:()=>resizeStage==='fence-failure'?'failed':++polls===1?'pending':'ready',reset:()=>events.push('reset'),diagnostics:()=>({})};
+      const realPrepare=s.prepareOverlay;s.prepareOverlay=function(){events.push(`warm:${this.overlay.width}x${this.overlay.height}`);return realPrepare.call(this);};
+      Object.defineProperty(globalThis,'requestAnimationFrame',{configurable:true,value:(callback:(now:number)=>void)=>{
+        assert.equal(s.prepared,false);frames++;if(resizeStage==='disposed')s.disposed=true;
+        if(frames===1&&(resizeStage==='pending'||resizeStage==='same-size')){if(resizeStage==='pending')rect={width:1280,height:720};s.resize();}
+        queueMicrotask(()=>callback(performance.now()));return frames;
+      }});
+      const before=JSON.stringify(state);
+      if(resizeStage==='read-failure'){h.failRead(1);await assert.rejects(s.prepare(),/readback failed/);assert.equal(s.prepared,false);assert.equal(submissions,0);assert.equal(JSON.stringify(state),before);continue;}
+      if(resizeStage==='fence-failure'){await assert.rejects(s.prepare(),/Initial GPU frame failed/);assert.equal(s.prepared,false);assert.equal(events.includes('reset'),false);assert.equal(JSON.stringify(state),before);continue;}
+      await s.prepare();assert.equal(JSON.stringify(state),before);
+      if(resizeStage==='disposed'){assert.equal(s.prepared,false);assert.equal(events.includes('reset'),false);continue;}
+      assert.equal(s.prepared,true);
+      const expectedPasses=resizeStage==='pending'||resizeStage==='same-size'?2:1;
+      assert.equal(submissions,expectedPasses);assert.equal(frames,expectedPasses);assert.equal(h.reads.length,2*expectedPasses);
+      assert.deepEqual(h.reads.at(-1).args,[0,0,rect.width,rect.height]);assert.equal(events.at(-1),'reset');
+      for(let i=0;i<events.length;i++)if(events[i].startsWith('warm:'))assert.deepEqual(events.slice(i+1,i+3),['render','submit']);
+    }
+  }finally{if(originalRAF)Object.defineProperty(globalThis,'requestAnimationFrame',originalRAF);else delete (globalThis as any).requestAnimationFrame;}
+});
+
+test('public label clip keeps original text operations, current path and exact fallback states',async()=>{
+  const { NusumidaseScene }=await import('../src/scene');
+  const descriptor=Object.getOwnPropertyDescriptor(globalThis,'Path2D');
+  class ClipPath { rectangles:number[][]=[]; rect(...values:number[]){this.rectangles.push(values);} }
+  Object.defineProperty(globalThis,'Path2D',{configurable:true,value:ClipPath});
+  try{
+    for(const variant of ['clip','missing-bounds','nonfinite-bounds','transform','alpha','composite','filter','offset','blur','throw'] as const){
+      const commands:any[]=[],stack:any[]=[],path=['existing','leader'];let measures=0;
+      const c:any={font:'old',textAlign:'left',fillStyle:'#77dacb',shadowBlur:3,shadowOffsetX:0,shadowOffsetY:0,globalAlpha:1,globalCompositeOperation:'source-over',filter:'none',
+        getTransform:()=>({isIdentity:variant!=='transform'}),
+        measureText:()=>{measures++;return variant==='missing-bounds'?{}:{actualBoundingBoxLeft:20,actualBoundingBoxRight:variant==='nonfinite-bounds'?NaN:22,actualBoundingBoxAscent:8,actualBoundingBoxDescent:3};},
+        save:()=>stack.push({font:c.font,textAlign:c.textAlign,fillStyle:c.fillStyle}),restore:()=>Object.assign(c,stack.pop()),
+        clip:(p:ClipPath)=>commands.push(['clip',p.rectangles]),
+        fillText:(text:string,x:number,y:number)=>{commands.push(['text',text,x,y,c.font,c.fillStyle]);if(variant==='throw')throw new Error('text failure');},
+      };
+      if(variant==='alpha')c.globalAlpha=.5;if(variant==='composite')c.globalCompositeOperation='copy';if(variant==='filter')c.filter='blur(1px)';if(variant==='offset')c.shadowOffsetX=1;if(variant==='blur')c.shadowBlur=4;
+      const s:any=Object.create(NusumidaseScene.prototype);s.ctx=c;
+      if(variant==='throw')assert.throws(()=>s.drawPublicLabel('基地','1.0km · 高度30m',86.25,264.12),/text failure/);
+      else s.drawPublicLabel('基地','1.0km · 高度30m',86.25,264.12);
+      assert.deepEqual(path,['existing','leader']);assert.equal(stack.length,0);
+      const clipped=variant==='clip'||variant==='throw';assert.equal(commands.some(x=>x[0]==='clip'),clipped);
+      if(clipped)assert.deepEqual(commands[0],['clip',[[42,232,91,73]]]);
+      if(variant!=='throw')assert.deepEqual(commands.filter(x=>x[0]==='text'),[
+        ['text','基地',86.25,264.12,'600 10px system-ui','#77dacb'],['text','1.0km · 高度30m',86.25,277.12,'10px system-ui','#dce8df']]);
+      if(['alpha','composite','filter','offset','blur','transform'].includes(variant))assert.equal(measures,0);
+    }
+  }finally{if(descriptor)Object.defineProperty(globalThis,'Path2D',descriptor);else delete (globalThis as any).Path2D;}
+});

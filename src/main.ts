@@ -16,6 +16,10 @@ import type { GameMode, GameState, GameEvent, Team } from './types';
 
 function el<T extends HTMLElement = HTMLElement>(id: string): T { const node = document.getElementById(id); if (!node) throw new Error(`Missing UI: ${id}`); return node as T; }
 function setStatusText(id: string, text: string) { const node=el(id); if(node.textContent!==text)node.textContent=text; }
+// Compare against the live DOM, not a memoized value: settings and accessibility
+// changes are still reflected on the next frame, without repainting unchanged UI.
+function setStatusHidden(id: string, hidden: boolean) { const node=el(id); if(node.hidden!==hidden)node.hidden=hidden; }
+function setStatusAttribute(id: string, name: string, value: string) { const node=el(id); if(node.getAttribute(name)!==value)node.setAttribute(name,value); }
 const app = el('app'), canvas = el<HTMLCanvasElement>('flight'), overlay = el<HTMLCanvasElement>('markers');
 const abort = new AbortController(), signal = abort.signal;
 let selectedMode: GameMode = 'easy', state = createGame(undefined, selectedMode);
@@ -55,7 +59,7 @@ function setScreen(next: typeof screen) {
   el(id).focus({preventScroll:true}); syncAudio(true);
 }
 function announce(text: string, ticks = 180) { el('announcement').textContent = text; notificationUntilTick = state.tick + ticks; }
-function syncAudio(force=false) { audio.active = screen === 'playing' && state.phase === 'playing' && isAlive(state.player) && !document.hidden && !contextLost; if(force||lastAudioActive!==audio.active||lastAudioEnabled!==audio.enabled){audio.sync();lastAudioActive=audio.active;lastAudioEnabled=audio.enabled;} for (const id of ['home-sound','game-sound']) { el(id).setAttribute('aria-pressed',String(audio.enabled)); el(id).setAttribute('aria-label',audio.enabled?'音をオフにする':'音をオンにする'); } el('home-sound').textContent = audio.enabled?'音をオフにする':'音をオンにする'; el('game-sound').textContent=audio.enabled?'音 ON':'音 OFF'; }
+function syncAudio(force=false) { audio.active = screen === 'playing' && state.phase === 'playing' && isAlive(state.player) && !document.hidden && !contextLost; if(force||lastAudioActive!==audio.active||lastAudioEnabled!==audio.enabled){audio.sync();lastAudioActive=audio.active;lastAudioEnabled=audio.enabled;} for (const id of ['home-sound','game-sound']) { setStatusAttribute(id,'aria-pressed',String(audio.enabled)); setStatusAttribute(id,'aria-label',audio.enabled?'音をオフにする':'音をオンにする'); } setStatusText('home-sound',audio.enabled?'音をオフにする':'音をオンにする'); setStatusText('game-sound',audio.enabled?'音 ON':'音 OFF'); }
 async function toggleAudio() { audio.enabled=!audio.enabled; if(audio.enabled) await audio.unlock(); syncAudio(); if(audio.failed) announce('音を再生できません'); }
 for (const id of ['home-sound','game-sound']) el(id).addEventListener('click',()=>void toggleAudio(),{signal});
 function begin() {
@@ -84,18 +88,18 @@ async function restoreGraphics() { const epoch=++graphicsEpoch; try { scene?.dis
 for(const id of ['reload','pause-reload'])el(id).addEventListener('click',()=>location.reload(),{signal});
 function flagText(team: Team) { const flag=state.flags[team]; return flag.state==='atHome'?'基地に待機':flag.state==='dropped'?'撃破地点に留まる':team==='friendly'?'敵機が携行':'味方が携行'; }
 function updateHUD() {
-  const p=state.player; el('timer').textContent=formatTime(MATCH_PLAY_TICKS-state.playTicks); el('friendly-captures').textContent=String(state.scores.friendly); el('enemy-captures').textContent=String(state.scores.enemy); el('friendly-flag').textContent=flagText('friendly'); el('enemy-flag').textContent=flagText('enemy');
-  const hp=Math.ceil(Math.max(0,p.health)/p.maxHealth*100); el('health').textContent=String(hp);el('health-bar').style.width=`${hp}%`; el('altitude').textContent=`${Math.round(p.position.y)}m`;el('speed').textContent=`${Math.round(p.speed*3.6)}km/h`;el('target-speed').textContent=String(Math.round(getPlayerTargetSpeed(state)*3.6)); el('allies-count').textContent=String(state.allies.filter(isAlive).length); el('mg-ammo').textContent=String(p.mg);el('cannon-ammo').textContent=String(p.cannon);
-  el('reload-status').hidden=p.reloadTicksRemaining<=0;el('reload-status').textContent=`再装填 ${Math.ceil(p.reloadTicksRemaining/60)}秒`;
-  el('loop-status').textContent=p.loopProgress>0?'宙返り中':p.loopCooldown>0?`${p.loopCooldown.toFixed(1)}秒`:'すぐ使える';buttons.loop.disabled=!isAlive(p)||p.loopCooldown>0||state.phase!=='playing';
-  const carried=carriedFlagFor(state,p);el('carrier-status').hidden=!carried;
-  if(carried){const base=BASE_POSITIONS.friendly;el('carrier-status').textContent=`敵コア携行中\n自基地 ${Math.round(p.position.distanceTo(base))}m · 高度差 ${Math.round(base.y-p.position.y)}m`;}
+  const p=state.player; setStatusText('timer',formatTime(MATCH_PLAY_TICKS-state.playTicks)); setStatusText('friendly-captures',String(state.scores.friendly)); setStatusText('enemy-captures',String(state.scores.enemy)); setStatusText('friendly-flag',flagText('friendly')); setStatusText('enemy-flag',flagText('enemy'));
+  const hp=Math.ceil(Math.max(0,p.health)/p.maxHealth*100); setStatusText('health',String(hp));const healthBar=el('health-bar'),healthWidth=`${hp}%`;if(healthBar.style.width!==healthWidth)healthBar.style.width=healthWidth; setStatusText('altitude',`${Math.round(p.position.y)}m`);setStatusText('speed',`${Math.round(p.speed*3.6)}km/h`);setStatusText('target-speed',String(Math.round(getPlayerTargetSpeed(state)*3.6))); setStatusText('allies-count',String(state.allies.filter(isAlive).length)); setStatusText('mg-ammo',String(p.mg));setStatusText('cannon-ammo',String(p.cannon));
+  setStatusHidden('reload-status',p.reloadTicksRemaining<=0);setStatusText('reload-status',`再装填 ${Math.ceil(p.reloadTicksRemaining/60)}秒`);
+  setStatusText('loop-status',p.loopProgress>0?'宙返り中':p.loopCooldown>0?`${p.loopCooldown.toFixed(1)}秒`:'すぐ使える');const loopDisabled=!isAlive(p)||p.loopCooldown>0||state.phase!=='playing';if(buttons.loop.disabled!==loopDisabled)buttons.loop.disabled=loopDisabled;
+  const carried=carriedFlagFor(state,p);setStatusHidden('carrier-status',!carried);
+  if(carried){const base=BASE_POSITIONS.friendly;setStatusText('carrier-status',`敵コア携行中\n自基地 ${Math.round(p.position.distanceTo(base))}m · 高度差 ${Math.round(base.y-p.position.y)}m`);}
   let status=''; if(!isAlive(p))status=`撃墜 · 復活まで ${Math.max(0,Math.ceil(((p.respawnDuePlayTick??state.playTicks)-state.playTicks)/60))}秒`;else if(isProtected(state,p))status=`復活保護 ${Math.ceil((p.protectionUntilPlayTick-state.playTicks)/60)}秒`;
-  el('lifecycle-status').hidden=!status;setStatusText('lifecycle-status',status);
+  setStatusHidden('lifecycle-status',!status);setStatusText('lifecycle-status',status);
   const waiting=state.allies.filter(plane=>!isAlive(plane)&&plane.respawnDuePlayTick!==null);
   setStatusText('ally-announcements',waiting.length?`僚機${waiting.length}機が復活待ち · 最短${Math.max(0,Math.ceil((Math.min(...waiting.map(plane=>plane.respawnDuePlayTick!))-state.playTicks)/60))}秒`:'');
-  const low=p.position.y<LOW_ALTITUDE_WARNING; const edge=boundaryWarning(p.position);el('warning').hidden=!isAlive(p)||(!low&&!edge);setStatusText('warning',low?'低空注意 · 機首を上げて':'空域の境界に接近 · 内側へ旋回');
-  if(notificationUntilTick && state.tick>=notificationUntilTick){el('announcement').textContent='';notificationUntilTick=0;}
+  const low=p.position.y<LOW_ALTITUDE_WARNING; const edge=boundaryWarning(p.position);setStatusHidden('warning',!isAlive(p)||(!low&&!edge));setStatusText('warning',low?'低空注意 · 機首を上げて':'空域の境界に接近 · 内側へ旋回');
+  if(notificationUntilTick && state.tick>=notificationUntilTick){setStatusText('announcement','');notificationUntilTick=0;}
 }
 function processEvents(events: readonly Readonly<GameEvent>[]) {
   scene?.events(events,state.elapsed);
