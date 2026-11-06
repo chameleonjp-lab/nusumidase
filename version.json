@@ -1,9 +1,23 @@
 {
-  "sourceCommit": "58a4fded9eab018c59a4a1a57f5644c7feb6a5d9",
+  "sourceCommit": "f33afc8c44de1ba0f540cd08c18cb3f08154ef16",
   "sourceBranch": "main",
-  "sourceTree": "cbbd564f8b87dc1862fbc6dd4aefa055c465a692",
-  "sourcePullRequest": 8,
-  "publishedDate": "2026-10-18",
+  "sourceTree": "add960dce73438e752adc534a7063ef6fdec4040",
+  "sourcePullRequest": 10,
+  "publishedDate": "2026-11-06",
   "rulesVersion": "nusumidase-ctf-v3",
-  "buildCommand": "npm ci && npm run build"
+  "buildCommand": "npm ci && npm run build",
+  "files": {
+    "assets/index-A6yjUbUq.css": "e42946727f66bdd861b9498ba1336fe6c5f22bb0cb29ad42a57d347fc3be6f84",
+    "assets/index-Y-ykInYK.js": "84cd0513e60ff2e3eed330e1d672b79439d28af838abd210f6dc867e3667d23d",
+    "index.html": "34ff50b24c32dc88b2829b495a0942c3d24ce970cd0531d0d045b9daebf23da3",
+    ".nojekyll": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "retainedFiles": {
+    "assets/index-BeHMgEnf.js": "22ffa721e5f9dfa520275568449b062368b5014c5e57899932c40367588e9855",
+    "assets/index-C-n9Iqso.js": "9d9cb12b7c39a2d8e4b4e98dd11db47fa60dde96dae8ef1c62b724206d173ffa"
+  },
+  "previousPagesCommit": "540ffaa930b6809496ebd0ed7fbb6c94cb982db0",
+  "sourceAcceptanceRun": "https://github.com/chameleonjp-lab/nusumidase/actions/runs/42279975389",
+  "physicalIphoneVerified": false,
+  "publicationScope": "User-authorized latest tested merged main; static artifacts only; previous hashed assets preserved; physical-phone acceptance not claimed"
 }
