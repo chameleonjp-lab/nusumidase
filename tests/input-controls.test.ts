@@ -4,6 +4,8 @@ import { FlightControls } from '../src/input';
 import { KeyboardSettings } from '../src/keyboard-settings';
 import { advanceThrottle, createFlightController } from '../src/flight';
 import { acknowledgeInputReset, createGame, startGame, stepGame, flightControllerFor } from '../src/simulation';
+import { readFileSync } from 'node:fs';
+import vm from 'node:vm';
 
 class ElementMock {
   attributes=new Map<string,string>(); captures=new Set<number>(); tabIndex=0; isContentEditable=false;
@@ -110,4 +112,30 @@ test('steeringActive belongs only to steering owners, including deadzone, opposi
   controls.clear();controls.keyDown(key('ArrowUp'));controls.keyUp(key('ArrowUp'));const tap=controls.sample();assert.equal(tap.steeringActive,true);assert.equal(tap.climb,1);assert.deepEqual(controls.sample(),tap);
   controls.acknowledge(tap);assert.equal(controls.sample().steeringActive,undefined);
   controls.beginSteering(pointer(4),new ElementMock());controls.active=()=>false;assert.equal(controls.sample().steeringActive,undefined);
+});
+test('height-only resize keeps independent owners and rebases the next client coordinate',()=>{
+ const previous=Object.getOwnPropertyDescriptor(globalThis,'window');
+ const win={innerWidth:402,innerHeight:874};Object.defineProperty(globalThis,'window',{configurable:true,value:win});
+ try{const {controls}=fixture();controls.viewportWidth=402;controls.viewportHeight=874;
+  controls.beginSteering(pointer(1),new ElementMock());controls.moveSteering(pointer(1,{clientX:12,clientY:-6}));controls.beginButton('fire',pointer(2));const before=controls.sample();
+  win.innerHeight=820;controls.resizeViewport?.();assert.equal(controls.sample().turn,before.turn);assert.equal(controls.sample().fire,true);assert.equal(controls.peek().steerPointer,1);
+  controls.moveSteering(pointer(1,{clientX:12,clientY:-60}));assert.equal(controls.sample().climb,before.climb);controls.moveSteering(pointer(1,{clientX:18,clientY:-60}));assert.ok(controls.sample().turn>before.turn);
+  win.innerWidth=874;win.innerHeight=402;controls.resizeViewport?.();assert.equal(controls.peek().steerPointer,null);assert.equal(controls.sample().fire,false);
+ }finally{if(previous)Object.defineProperty(globalThis,'window',previous);else Reflect.deleteProperty(globalThis,'window');}
+});
+for(const mode of ['easy','normal'] as const)test(`${mode}: input and actual main resize handlers retain the same finger when height crosses width`,()=>{
+ const previous=Object.getOwnPropertyDescriptor(globalThis,'window');
+ const win=Object.assign(new EventTarget(),{innerWidth:402,innerHeight:420,visualViewport:new EventTarget()});Object.defineProperty(globalThis,'window',{configurable:true,value:win});
+ try{const {controls}=fixture();controls.setMode(mode);controls.viewportWidth=402;controls.viewportHeight=420;
+  win.addEventListener('resize',()=>controls.resizeViewport());
+  const source=readFileSync(new URL('../src/main.ts',import.meta.url),'utf8');const start=source.indexOf('let viewportWidth=');const end=source.indexOf("canvas.addEventListener('webglcontextlost'",start);
+  assert.ok(start>=0&&end>start);let clears=0,resizes=0;
+  vm.runInNewContext(source.slice(start,end),{window:win,signal:new AbortController().signal,clearInput(){clears++;controls.clear();},scene:{resize(){resizes++;}}});
+  controls.beginSteering(pointer(7),new ElementMock());controls.moveSteering(pointer(7,{clientX:12,clientY:-6}));const before=controls.sample();
+  for(const height of [390,420]){win.innerHeight=height;win.dispatchEvent(new Event('resize'));assert.equal(clears,0);assert.equal(controls.peek().steerPointer,7);assert.equal(controls.sample().turn,before.turn);assert.equal(controls.sample().climb,before.climb);
+   controls.moveSteering(pointer(7,{clientX:12,clientY:height===390?-36:-6}));assert.equal(controls.sample().turn,before.turn);assert.equal(controls.sample().climb,before.climb);}
+  assert.equal(resizes,2);controls.moveSteering(pointer(7,{clientX:18,clientY:-6}));assert.ok(controls.sample().turn>before.turn);
+  win.dispatchEvent(new Event('orientationchange'));assert.equal(clears,1);assert.equal(controls.peek().steerPointer,null);
+  controls.beginSteering(pointer(8),new ElementMock());win.innerWidth=420;win.dispatchEvent(new Event('resize'));assert.equal(clears,2);assert.equal(controls.peek().steerPointer,null);
+ }finally{if(previous)Object.defineProperty(globalThis,'window',previous);else Reflect.deleteProperty(globalThis,'window');}
 });

@@ -14,6 +14,7 @@ import { FlagView, TEAM_COLORS } from './flag-view';
 import { carriedFlagFor, getFlagPosition } from './flags';
 import { targetAimPoint } from './flight-assist';
 import { FLIGHT_FOV, FLIGHT_VISIBILITY_RANGE, getFlightCameraPose } from './flight-view';
+import { FlightPresentation } from './flight-presentation';
 import { projectGunSight } from './gun-sight';
 import { PLAYER_RELOAD_TICKS } from './mission';
 import { createOceanGeometry, oceanAnchor } from './ocean';
@@ -31,6 +32,9 @@ const TEAMS = ['friendly', 'enemy'] as const;
 
 /** Kaisen's airframe, lighting, ocean and flight camera with a CTF-only view. */
 export class NusumidaseScene {
+  private presentation?: FlightPresentation;
+  capturePresentation(state: GameState) { (this.presentation ??= new FlightPresentation()).capture(state); }
+  resetPresentation() { this.presentation?.reset(); }
   readonly renderer: WebGLRenderer;
   readonly camera = new PerspectiveCamera(FLIGHT_FOV, 1, .5, 22000);
   private readonly scene = new Scene();
@@ -284,11 +288,12 @@ export class NusumidaseScene {
     if (this.particles.length > EFFECT_CAPACITY) this.particles.splice(0, this.particles.length - EFFECT_CAPACITY);
   }
 
-  render(state: GameState, showHUD: boolean, presentationDt = 0): boolean {
+  render(state: GameState, showHUD: boolean, presentationDt = 0, alpha = 1): boolean {
     if (this.disposed) return false;
     if (state.matchId !== this.matchId || state.roundEpoch !== this.roundEpoch) this.reset(state);
     this.current = state;
     if (this.pollRender() !== 'ready') return false;
+    state = this.presentation?.sample(state, alpha) ?? state;
     const dt = Math.max(0, Math.min(.1, state.elapsed - this.lastTime)); this.lastTime = state.elapsed;
     this.visualTime = state.phase === 'ended' ? this.visualTime + Math.max(0, Math.min(.1, presentationDt)) : state.elapsed;
     this.events(state.events, state.elapsed);

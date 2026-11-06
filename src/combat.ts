@@ -2,7 +2,7 @@
 import { Vector3 } from 'three';
 import { hasSafeShot } from './ai';
 import { aircraftOrder, isLegalPosition, segmentSphereEntry, slotKey } from './arena';
-import { applyEasyShotCorrection, autoFireTarget, predictedShotDirection } from './flight-assist';
+import { predictedShotDirection } from './flight-assist';
 import { forwardOf } from './flight';
 import { aircraftDamageMultiplier } from './aircraft-damage';
 import { AIRCRAFT_BULLET_LIFETIME, FIXED_DT, MAX_BULLETS, PLAYER_CANNON_CAPACITY, PLAYER_MG_CAPACITY, PLAYER_RELOAD_TICKS } from './mission';
@@ -49,7 +49,7 @@ export function advanceAmmunition(state: GameState, plane: Aircraft, emit: EmitE
 export function fireAircraft(state: GameState, plane: Aircraft, firing: boolean, nextBulletId: () => number, emit: EmitEvent): void {
   if (!firing || !isAlive(plane) || isProtected(state, plane) || plane.reloadTicksRemaining > 0) return;
   const player = plane === state.player;
-  const target = player ? autoFireTarget(plane, state.enemies.filter(p => isAlive(p) && !isProtected(state, p)), state.mode, undefined)
+  const target = player ? null
     : state.slots.find(candidate => candidate.id === plane.targetId && isAlive(candidate) && !isProtected(state, candidate) && candidate.team !== plane.team) ?? null;
   if (!player && (!target || !hasSafeShot(state, plane, target))) return;
   for (const kind of ['mg', 'cannon'] as const) {
@@ -60,8 +60,7 @@ export function fireAircraft(state: GameState, plane: Aircraft, firing: boolean,
     for (const side of [-1, 1]) {
       const forward = forwardOf(plane), offset = kind === 'mg' ? new Vector3(side * 0.3, 0.52, -4.25) : new Vector3(side * 2.5, 0, -2.4);
       const position = plane.position.clone().add(offset.applyQuaternion(plane.quaternion)), speed = plane.speed + (kind === 'mg' ? 820 : 700);
-      const prediction = target ? predictedShotDirection(position, forward, target, speed, AIRCRAFT_BULLET_LIFETIME) : forward;
-      const direction = player && state.mode === 'easy' ? applyEasyShotCorrection(forward, prediction) : prediction;
+      const direction = !player && target ? predictedShotDirection(position, forward, target, speed, AIRCRAFT_BULLET_LIFETIME) : forward;
       if (!player) {
         direction.x += Math.sin(state.tick * 1.7 + plane.id * 3 + side + state.seed) * 0.012;
         direction.y += Math.cos(state.tick * 1.3 + plane.id * 2 + side + state.seed) * 0.012; direction.normalize();
