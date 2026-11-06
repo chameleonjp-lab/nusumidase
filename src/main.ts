@@ -36,7 +36,7 @@ const keyboard = new KeyboardSettings(), presentation = new ControlInputPresenta
 const settings = new ControlSettings(buttons, keyboard, presentation);
 let rules: RulesGuide;
 const controls = new FlightControls(canvas, buttons, () => screen === 'playing' && state.phase === 'playing' && isAlive(state.player) && !settings.isOpen && !rules?.isOpen, keyboard);
-function clearInput() { controls.clear(); if(acknowledgeInputReset(state,state.inputEpoch))lastInputEpoch=state.inputEpoch; }
+function clearInput() { controls.clear(); scene?.resetPresentation(); if(acknowledgeInputReset(state,state.inputEpoch))lastInputEpoch=state.inputEpoch; }
 rules = new RulesGuide(() => ({mode:state.mode,input:presentation.value,keyboardDescription:keyboard.describe(state.mode)}), () => clearInput());
 function modeName(mode: GameMode) { return mode === 'easy' ? 'イージー' : 'ノーマル'; }
 function formatTime(ticks: number) { const secs = Math.ceil(Math.max(0,ticks)/60); return `${String(Math.floor(secs/60)).padStart(2,'0')}:${String(secs%60).padStart(2,'0')}`; }
@@ -79,8 +79,12 @@ window.addEventListener('keydown',event=>{ if(event.repeat||event.isComposing||k
 window.addEventListener('blur',()=>pause('画面を離れたため一時停止しました'),{signal});
 window.addEventListener('pagehide',()=>pause('画面を離れたため一時停止しました'),{signal});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pause('画面が非表示になったため一時停止しました');},{signal});
-function resized() { clearInput(); scene?.resize(); }
-window.addEventListener('resize',resized,{signal}); window.addEventListener('orientationchange',resized,{signal}); window.visualViewport?.addEventListener('resize',resized,{signal});
+let viewportWidth=window.innerWidth,viewportHeight=window.innerHeight;
+function resized() { const width=window.innerWidth,height=window.innerHeight;
+  if(width!==viewportWidth)clearInput();
+  viewportWidth=width;viewportHeight=height;scene?.resize();
+}
+window.addEventListener('resize',resized,{signal}); window.addEventListener('orientationchange',()=>{clearInput();resized();},{signal}); window.visualViewport?.addEventListener('resize',resized,{signal});
 canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();graphicsEpoch++;contextLost=true;ready=false;const lostScene=scene;scene=null;lostScene?.dispose();el<HTMLButtonElement>('start').disabled=true;if(screen==='home'){el('startup-error').hidden=false;el('startup-error').textContent='描画が中断されました。復帰を待つか、再読み込みしてください';el('reload').hidden=false;}pause('描画が中断されました。復帰後も再開操作が必要です'); el('resume').hidden=true;},{signal});
 // Retire old GL handles while the context is lost; rebuild after the restored event dispatch.
 canvas.addEventListener('webglcontextrestored',()=>{const epoch=graphicsEpoch;setTimeout(()=>{if(!disposed&&contextLost&&epoch===graphicsEpoch)void restoreGraphics();},0);},{signal});
@@ -129,7 +133,7 @@ function advance(dt: number) {
   accumulator+=Math.max(0,dt);if(accumulator>MAX_ACCUMULATOR){pause('描画が遅れたため一時停止しました。飛行を再開してください');return;}
   let steps=0;
   while(accumulator+1e-10>=FIXED_DT&&steps<MAX_STEPS_PER_FRAME&&screen==='playing'){
-    const frame=controls.sample();const consumed=stepFixed(state,{...frame,viewAspect:canvas.clientWidth/Math.max(1,canvas.clientHeight)});if(consumed)controls.acknowledge(frame);accumulator-=FIXED_DT;steps++;afterStep();processEvents(state.events);
+    const frame=controls.sample();scene?.capturePresentation(state);const consumed=stepFixed(state,{...frame,viewAspect:canvas.clientWidth/Math.max(1,canvas.clientHeight)});if(consumed)controls.acknowledge(frame);accumulator-=FIXED_DT;steps++;afterStep();processEvents(state.events);
 
   }
 }
@@ -141,12 +145,12 @@ function afterStep() {
 
 function frame(now: number) {
   if(disposed)return;frameId=requestAnimationFrame(frame);const dt=lastFrame?(now-lastFrame)/1000:0;lastFrame=now;
-  if(ready&&!contextLost){const renderStatus=scene?.pollRender(now);if(renderStatus==='stalled'||renderStatus==='failed'){pause('描画の完了を確認できないため一時停止しました');return;}const started=performance.now();if(!manualHarness)advance(dt);updateHUD();if(renderStatus==='ready')scene?.render(state,screen==='playing'||screen==='paused',state.phase==='ended'?dt:0);updateTimes.push(performance.now()-started);if(updateTimes.length>720)updateTimes.shift();if(dt>0){frameTimes.push(dt*1000);if(frameTimes.length>720)frameTimes.shift();}audio.update(state.player.speed);audio.updatePasses(state.slots,state.player,state.elapsed);if(screen!=='result')syncAudio();}
+  if(ready&&!contextLost){const renderStatus=scene?.pollRender(now);if(renderStatus==='stalled'||renderStatus==='failed'){pause('描画の完了を確認できないため一時停止しました');return;}const started=performance.now();if(!manualHarness)advance(dt);updateHUD();if(renderStatus==='ready')scene?.render(state,screen==='playing'||screen==='paused',state.phase==='ended'?dt:0,accumulator/FIXED_DT);updateTimes.push(performance.now()-started);if(updateTimes.length>720)updateTimes.shift();if(dt>0){frameTimes.push(dt*1000);if(frameTimes.length>720)frameTimes.shift();}audio.update(state.player.speed);audio.updatePasses(state.slots,state.player,state.elapsed);if(screen!=='result')syncAudio();}
 }
 function dispose() { if(disposed)return;disposed=true;graphicsEpoch++;cancelAnimationFrame(frameId);abort.abort();unsubKeyboard();unsubPresentation();controls.dispose();settings.dispose();rules.dispose();presentation.dispose();scene?.dispose();audio.dispose(); }
 // Explicit development harness; production builds expose no mutable game state.
 if(import.meta.env.DEV&&new URLSearchParams(location.search).has('review')){
-  Object.assign(window,{__nusumidase:{get state(){return state;},get scene(){return scene;},get controls(){return controls;},get settings(){return settings;},get screen(){return screen;},get targetSpeed(){return getPlayerTargetSpeed(state);},queueDamage(event: Parameters<typeof queueDamageEvent>[1]){return queueDamageEvent(state,event);},begin,pause,resume,home,manual(value=true){manualHarness=value;accumulator=0;clearInput();},step(count=1){for(let i=0;i<count;i++){const frame=controls.sample();if(stepFixed(state,frame))controls.acknowledge(frame);afterStep();processEvents(state.events);if(state.phase==='ended'||state.phase==='paused')break;}updateHUD();scene?.render(state,true);},render(){updateHUD();scene?.render(state,true);},frame(dt:number){advance(dt);updateHUD();},get metrics(){return{frameTimes:[...frameTimes],updateTimes:[...updateTimes],audioSources:audio.activeEffectSourceCount};},dispose}});
+  Object.assign(window,{__nusumidase:{get state(){return state;},get scene(){return scene;},get controls(){return controls;},get settings(){return settings;},get screen(){return screen;},get targetSpeed(){return getPlayerTargetSpeed(state);},queueDamage(event: Parameters<typeof queueDamageEvent>[1]){return queueDamageEvent(state,event);},begin,pause,resume,home,manual(value=true){manualHarness=value;accumulator=0;clearInput();},step(count=1){for(let i=0;i<count;i++){const frame=controls.sample();scene?.capturePresentation(state);if(stepFixed(state,{...frame,viewAspect:canvas.clientWidth/Math.max(1,canvas.clientHeight)}))controls.acknowledge(frame);afterStep();processEvents(state.events);if(state.phase==='ended'||state.phase==='paused')break;}updateHUD();scene?.render(state,true);},render(){updateHUD();scene?.render(state,true);},frame(dt:number){advance(dt);updateHUD();},get metrics(){return{frameTimes:[...frameTimes],updateTimes:[...updateTimes],audioSources:audio.activeEffectSourceCount};},dispose}});
 }
 syncMode();syncAudio();frameId=requestAnimationFrame(frame);
 try { const initial=new NusumidaseScene(canvas,overlay),epoch=graphicsEpoch;scene=initial;initial.render(state,false);void initial.prepare().then(()=>{if(disposed||epoch!==graphicsEpoch||scene!==initial)return;ready=true;el<HTMLButtonElement>('start').disabled=false;el('start').textContent='出撃する';}).catch(error=>{if(!disposed&&epoch===graphicsEpoch&&scene===initial)failGraphics(error);}); }catch(error){failGraphics(error);}

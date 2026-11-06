@@ -2,7 +2,7 @@ import { Vector3 } from 'three';
 import { updateAI } from './ai';
 import { aircraftOrder, finitePosition } from './arena';
 import { advanceAmmunition, collectBulletDamage, collectContactDamage, fireAircraft, type DamageCandidate } from './combat';
-import { autoFireTarget, getFlightAssist } from './flight-assist';
+import { autoFireTarget } from './flight-assist';
 import { advanceThrottle, createFlightController, MAX_SPEED, updateAircraftMotion, updatePlayerLoop, type FlightController } from './flight';
 import { captureCandidates, createFlags, dropCarrierFlags, flagInvariantError, flagStartSnapshot, resolveFlagTransitions, type CaptureCandidate, type FlagStartSnapshot, type FlagTransition } from './flags';
 import { CAPTURES_TO_WIN, FIXED_DT, makeSlots, MATCH_PLAY_TICKS, MAX_ACCUMULATOR, MAX_EVENTS_PER_STEP, MAX_STEPS_PER_FRAME, resolveMissionConfig, RULES_VERSION } from './mission';
@@ -226,11 +226,9 @@ export function stepFixed(state: GameState, supplied: FlightInput): boolean {
     if (!isAlive(plane)) continue;
     plane.previous.copy(plane.position); plane.age += FIXED_DT; advanceAmmunition(state, plane, (type, aircraft, options) => emit(state, type, aircraft, options));
     if (plane === state.player) {
-      const enemies = state.enemies.filter(enemy => isAlive(enemy) && !isProtected(state, enemy));
-      const assist = getFlightAssist(plane, enemies, input, state.mode);
       const preferred = advanceThrottle(meta.flight, input, state.mode, FIXED_DT);
       const loopPressed = input.loop && !meta.loopHeld; meta.loopHeld = input.loop;
-      if (updatePlayerLoop(plane, meta.flight, { ...input, turn: assist.turn, climb: assist.climb }, input, loopPressed, FIXED_DT, preferred, MAX_SPEED, assist.responseMultiplier, state.mode)) {
+      if (updatePlayerLoop(plane, meta.flight, input, input, loopPressed, FIXED_DT, preferred, MAX_SPEED, 1, state.mode)) {
         state.stats.loops = bounded(state.stats.loops); emit(state, 'loop', plane);
       }
     } else updateAircraftMotion(plane, plane.aiTurn, plane.aiClimb, FIXED_DT, 110);

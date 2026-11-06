@@ -406,6 +406,13 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
   await page.evaluate(async(renderDiagnostic)=>{
     const view=await import('/src/flight-view.ts'),gun=await import('/src/gun-sight.ts');
     const h=(window as any).__nusumidase,scene=h.scene,original=scene.render;
+    const originalCapture=scene.capturePresentation,originalReset=scene.resetPresentation;
+    let previous:any=null;
+    if(originalCapture)scene.capturePresentation=function(state:any){
+      previous={state,tick:state.tick,matchId:state.matchId,roundEpoch:state.roundEpoch,player:{...state.player,position:state.player.position.clone(),quaternion:state.player.quaternion.clone()}};
+      return originalCapture.call(this,state);
+    };
+    if(originalReset)scene.resetPresentation=function(){previous=null;return originalReset.call(this);};
     const originalPoll=scene.pollRender,originalWebGL=scene.renderer.render,originalOverlay=scene.drawOverlay;
     const gl=scene.renderer.getContext(),debugRenderer=gl.getExtension('WEBGL_debug_renderer_info');
     const hideCanvas=renderDiagnostic==='canvas-off'||renderDiagnostic==='both-off';
@@ -423,7 +430,7 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
       backend:{vendor:gl.getParameter(gl.VENDOR),renderer:gl.getParameter(gl.RENDERER),
         unmaskedRenderer:debugRenderer?gl.getParameter(debugRenderer.UNMASKED_RENDERER_WEBGL):null},
       maxObservationMs:0,maxOriginalRenderMs:0,maxWebGLMs:0,maxOverlayMs:0,
-      restore:()=>{scene.render=original;scene.pollRender=originalPoll;scene.renderer.render=originalWebGL;scene.drawOverlay=originalOverlay;try{restoreShadow();}finally{restoreHUD();}}};
+      restore:()=>{scene.render=original;if(originalCapture)scene.capturePresentation=originalCapture;if(originalReset)scene.resetPresentation=originalReset;scene.pollRender=originalPoll;scene.renderer.render=originalWebGL;scene.drawOverlay=originalOverlay;try{restoreShadow();}finally{restoreHUD();}}};
     (window as any).__cameraObservation=observation;
     let lastFrameTime:number|null=null,currentFrame:any=null;
     const capturePause=()=>{
@@ -470,6 +477,12 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
       const observationStart=performance.now();
       const state=args[0],p={...state.player,position:state.player.position.clone(),quaternion:state.player.quaternion.clone()};
       const tick=state.tick,phase=state.phase,mode=state.mode,matchId=state.matchId,inputEpoch=state.inputEpoch;
+      const authoritativePitch=p.pitch,authoritativeYaw=p.yaw;
+      if(phase==='playing'&&previous?.state===state&&previous.tick===tick-1&&previous.matchId===matchId&&previous.roundEpoch===state.roundEpoch&&previous.player.generation===p.generation&&p.health>0){
+        const alpha=Number.isFinite(args[3])?Math.max(0,Math.min(1,args[3])):1,before=previous.player;
+        p.position.copy(before.position).lerp(state.player.position,alpha);p.quaternion.copy(before.quaternion).slerp(state.player.quaternion,alpha);
+        p.bank=before.bank+Math.atan2(Math.sin(p.bank-before.bank),Math.cos(p.bank-before.bank))*alpha;
+      }
       const renderStart=performance.now();
       const submitted=original.apply(this,args); // Exactly once, with untouched arguments.
       const renderEnd=performance.now();
@@ -489,7 +502,7 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
         const actual=c.quaternion.toArray(),expected=rotation.toArray();
         const rotationError=Math.min(...[1,-1].map(sign=>Math.max(...actual.map((value:number,index:number)=>Math.abs(value-sign*expected[index])))));
         observation.samples.push({sequence:++observation.sequence,tick,phase,mode,matchId,inputEpoch,generation:p.generation,
-          pitch:p.pitch,yaw:p.yaw,positionError:position.distanceTo(c.position),rotationError,
+          pitch:authoritativePitch,yaw:authoritativeYaw,positionError:position.distanceTo(c.position),rotationError,
           sightPixelError:Math.max(Math.abs(sight.x-(.5+.5*ndc.x)*diagnostics.width),Math.abs(sight.y-(.5-.5*ndc.y)*diagnostics.height)),
           calls:diagnostics.calls,queue:diagnostics.queue,camera:actual});
         if(observation.samples.length>32)observation.samples.shift();
@@ -611,6 +624,13 @@ for (const mode of ['normal', 'easy'] as const) for (const viewport of [
     expect(paused.phase).toBe('paused');expect(paused.pauseReason).toBe('時計・復活・装填も停止しています');
     await page.locator('#pause-controls').click();await page.locator('#control-cancel').click();
     expect((await live()).phase).toBe('paused');expect((await live()).tick).toBe(paused.tick);
+    if(fixedTicks){
+      // Actual main handlers all run before the next browser display callback.
+      const boundary=await page.evaluate(()=>{const h=(window as any).__nusumidase,o=(window as any).__cameraObservation;h.resume();h.pause();h.resume();return {tick:h.state.tick,sequence:o.sequence,phase:h.state.phase};});
+      expect(boundary.phase).toBe('playing');
+      const resumed=await page.waitForFunction(boundary=>{const s=(window as any).__cameraObservation.samples.at(-1);return s?.sequence>boundary.sequence&&s.tick===boundary.tick?s:false;},boundary,{polling:'raf'});
+      try{const sample=await resumed.jsonValue();expect(sample.positionError).toBeLessThan(1e-9);expect(sample.rotationError).toBeLessThan(1e-12);}finally{await resumed.dispose();}
+    }
   }finally{
     if(!page.isClosed()){
       const evidence=await page.evaluate(()=>{

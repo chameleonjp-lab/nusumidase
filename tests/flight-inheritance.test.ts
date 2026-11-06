@@ -65,7 +65,7 @@ test('manual total camera-forward angle matches all eight directions, modes, spe
   }
 });
 
-test('offscreen response changes horizontal rate only; keyboard diagonals and neutral recovery stay bounded',()=>{
+test('controller response parameter changes horizontal rate only; keyboard diagonals and neutral recovery stay bounded',()=>{
   for(const mode of ['easy','normal'] as const)for(const speed of [65,85,110,141])for(const pitch of [-.9,0,.9])for(const sign of [-1,1]){
     const step=.82*cameraAuthority(speed)*dt;
     for(const axis of ['turn','climb'] as const){const p=cameraPlane(pitch,0,0,speed),before=cameraPose(p,mode).forward;cameraStep(p,{...neutral,[axis]:sign*.45,steeringActive:true},mode,1.65);assert.ok(Math.abs(opticalAngle(before,cameraPose(p,mode).forward)-step*.45*(axis==='turn'?1.65:1))<1e-12);}
@@ -162,14 +162,13 @@ test('loop cancellation obeys independent pre-step bounds across bank, speed and
 
 
 import { getFlightAssist } from '../src/flight-assist';
-test('Easy owner at zero or tiny steering suppresses target pull, and ownerless assistance stays absolute',()=>{
+test('both modes preserve manual input with or without a target and steering owner',()=>{
   const p=cameraPlane(),pose=cameraPose(p,'easy'),enemy=makeAircraft(2,'enemy',new Vector3(),0,'interceptor',0);
   const tan=Math.tan(FLIGHT_FOV*Math.PI/360);enemy.position.set(.8*500*tan,.55*500*tan,-500).applyQuaternion(pose.rotation).add(pose.position);
-  const auto=getFlightAssist(p,[enemy],{...neutral,viewAspect:1},'easy');assert.ok(Math.abs(auto.turn)>0||Math.abs(auto.climb)>0);
-  for(const [turn,climb]of [[0,0],[.01,.02],[-.6,-.7]]){const result=getFlightAssist(p,[enemy],{...neutral,turn,climb,viewAspect:1,steeringActive:true},'easy');assert.equal(result.turn,turn);assert.equal(result.climb,climb);}
-  const a=cameraPlane(-.2);updatePlayerLoop(a,createFlightController(a),{...neutral,turn:.3,climb:.5},neutral,false,dt,110,141,1,'easy');assert.ok(Math.abs(a.pitch-(-.2+(.5*.95+.2)*(1-Math.exp(-4.2/60))))<1e-12);
-  enemy.health=0;const dead=getFlightAssist(p,[enemy],neutral,'easy');assert.equal(dead.turn,0);assert.equal(dead.climb,0);
-  assert.equal(getFlightAssist(p,[],neutral,'easy').hasVisibleTarget,false,'bases and cores are not aircraft targets');
+  for(const mode of ['easy','normal'] as const)for(const steeringActive of [false,true])for(const [turn,climb]of [[0,0],[.01,.02],[-.6,-.7]]){
+    const result=getFlightAssist(p,[enemy],{...neutral,turn,climb,viewAspect:1,steeringActive},mode);
+    assert.equal(result.turn,turn);assert.equal(result.climb,climb);assert.equal(result.responseMultiplier,1);assert.equal(result.hasVisibleTarget,false);
+  }
 });
 
 // Historical reference only: source ae3e3c / the fixture's pinned Kaisen commit.

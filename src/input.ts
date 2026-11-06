@@ -33,6 +33,10 @@ export class FlightControls {
   private turn = 0;
   private climb = 0;
   private origin = { x: 0, y: 0 };
+  private lastSteeringPoint = { x: 0, y: 0 };
+  private rebaseSteering = false;
+  private viewportWidth = window.innerWidth;
+  private viewportHeight = window.innerHeight;
   private mode: FlightMode = 'normal';
   private readonly abort = new AbortController();
   private readonly joystick: HTMLElement;
@@ -77,8 +81,9 @@ export class FlightControls {
     lever.addEventListener('focusout', () => this.clearFocused(), opts);
     window.addEventListener('keydown', event => this.keyDown(event), opts);
     window.addEventListener('keyup', event => this.keyUp(event), opts);
-    for (const event of ['blur', 'pagehide', 'resize', 'orientationchange']) window.addEventListener(event, () => this.clear(), opts);
-    window.visualViewport?.addEventListener('resize', () => this.clear(), opts);
+    for (const event of ['blur', 'pagehide', 'orientationchange']) window.addEventListener(event, () => this.clear(), opts);
+    window.addEventListener('resize', () => this.resizeViewport(), opts);
+    window.visualViewport?.addEventListener('resize', () => this.resizeViewport(), opts);
     document.addEventListener('visibilitychange', () => { if (document.hidden) this.clear(); }, opts);
     this.renderThrottle();
   }
@@ -120,7 +125,7 @@ export class FlightControls {
   clear(): void {
     this.ownershipRevision += 1;
     const steer = this.steerPointer; this.steerPointer = null; this.steerPointerType = null;
-    this.turn = 0; this.climb = 0;
+    this.turn = 0; this.climb = 0; this.rebaseSteering = false;
     this.keys.clear(); this.focusedKeys.clear(); this.pending.clear();
     this.hideJoystick();
     if (steer !== null) this.releaseCapture(this.surface, steer);
@@ -141,6 +146,12 @@ export class FlightControls {
   private pointerAllowed(event: PointerEvent): boolean { return this.active() && event.button === 0; }
   private owned(pointer: number): boolean { return pointer === this.steerPointer || pointer === this.throttlePointer || this.buttonPointers.has(pointer); }
 
+  private resizeViewport(): void {
+    const width=window.innerWidth,height=window.innerHeight;
+    const rotated=width!==this.viewportWidth;
+    this.viewportWidth=width;this.viewportHeight=height;
+    if(rotated)this.clear();else if(this.steerPointer!==null)this.rebaseSteering=true;
+  }
   private beginSteering(event: PointerEvent, app: HTMLElement): void {
     if (!this.pointerAllowed(event)) return;
     if (event.isPrimary) this.retireSameType(event.pointerType);
@@ -148,6 +159,7 @@ export class FlightControls {
     event.preventDefault(); this.steerPointer = event.pointerId; this.steerPointerType = event.pointerType;
     if (!this.capture(this.surface, event.pointerId)) { this.endSteering(event.pointerId); return; }
     this.origin = { x: event.clientX, y: event.clientY };
+    this.lastSteeringPoint = {...this.origin};this.rebaseSteering=false;
     const rect = app.getBoundingClientRect();
     this.joystick.style.left = `${event.clientX - rect.left}px`; this.joystick.style.top = `${event.clientY - rect.top}px`;
     this.joystick.classList.add('visible'); this.joystick.style.setProperty('--joystick-x', '0px'); this.joystick.style.setProperty('--joystick-y', '0px');
@@ -156,6 +168,11 @@ export class FlightControls {
     if (event.pointerId !== this.steerPointer) return;
     if (!this.active() || (event.pointerType === 'mouse' && event.buttons === 0)) { this.endSteering(event.pointerId); return; }
     event.preventDefault();
+    if(this.rebaseSteering){
+      this.origin.x+=event.clientX-this.lastSteeringPoint.x;this.origin.y+=event.clientY-this.lastSteeringPoint.y;this.rebaseSteering=false;
+      const rect=this.surface.getBoundingClientRect();this.joystick.style.left=`${this.origin.x-rect.left}px`;this.joystick.style.top=`${this.origin.y-rect.top}px`;
+    }
+    this.lastSteeringPoint={x:event.clientX,y:event.clientY};
     const dx = event.clientX - this.origin.x, dy = event.clientY - this.origin.y, distance = Math.hypot(dx, dy), radius = 36;
     const scale = distance > radius ? radius / distance : 1;
     const magnitude = Math.min(distance / radius, 1), response = magnitude <= .08 ? 0 : (magnitude - .08) / .92;
